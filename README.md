@@ -1,4 +1,4 @@
 LJ40K
 =====
 
-Modules for analyzing LJ40K data
+Python modules for analyzing LJ40K emotion data
