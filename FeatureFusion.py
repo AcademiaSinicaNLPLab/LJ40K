@@ -5,11 +5,14 @@ import pickle
 import pymongo
 import logging
 
+from collections import defaultdict
+
 from sklearn.linear_model import SGDClassifier
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.cross_validation import KFold
 from sklearn.preprocessing import StandardScaler
 from sklearn import svm
+from sklearn.decomposition import PCA, SparsePCA
 
 
 class FeatureFusion(object):
@@ -21,35 +24,42 @@ class FeatureFusion(object):
         loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
         logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)
 
+        self.feature_names = set()
+
+        self._feature = []
+        self._target = []
+
+        self.Xs = []
+        self.ys = []
+
+        self.kfold_results = []
+
+        self._db = None
+
+    def connect(self, **kwargs):
         ## config mongodb
         mongo_addr = 'doraemon.iis.sinica.edu.tw' if 'mongo_addr' not in kwargs else kwargs['mongo_addr']
         db_name = 'LJ40K' if 'db_name' not in kwargs else kwargs['db_name']
 
         self._db = pymongo.Connection(mongo_addr)[db_name]
 
-        self.feature_names = set()
-
-        self._feature = []
-        self._target = []
-
-        ## emoID --> emotion
-        # self._load_emoID_map(**kwargs)
-
         self.emoID_map = {e:i for i, e in enumerate(sorted(map(lambda x:x['emotion'], self._db["emotions"].find({ 'label': db_name }))))}
 
-        self.kfold_results = []
-
-    # def setClassifer(self):
-    #     self.clf = svm.SVC()
-        
     def _getCollectionName(self, feature_name, prefix="features"):
         return '.'.join([prefix, feature_name])
 
-    def add(self, feature_name):
+    def _toNumber(string, NaN=-1):
+        return NaN if string.lower() == 'nan' else float(string)
+
+    ### mongodb
+    def add_mongo(self, feature_name):
         """
         feature_name    :   e.g., TFIDF, pattern_emotion, keyword, ... ,etc.
         """
         collection_name = self._getCollectionName(feature_name)
+
+        if not self._db:
+            self.connect()
 
         if collection_name not in self._db.collection_names():
             raise Exception('cannot find collection %s in %s' % (collection_name, self._db.name))
@@ -57,51 +67,89 @@ class FeatureFusion(object):
             if feature_name in self.feature_names:
                 logging.info('feature %s already exists' % (feature_name))
             else:
-                self.feature_names.add(feature_name)
+                self.feature_names.add( feature_name )
                 logging.info('feature %s added' % (feature_name))
+        return self.feature_names
 
-    def fuse(self, **kwargs):
+    ### mongodb
+    def fuse_mongo(self, label_name="emotion", **kwargs):
         """
         !! could cause heavy memory usage !!
         """
         for feature_name in self.feature_names:
 
-            ## TFIDF --> features.TFIDF
+            ## setup collection name
+            ## feature_name (e.g. TFIDF) --> collection_name (e.g. features.TFIDF)
             collection_name = self._getCollectionName(feature_name)
             co = self._db[collection_name]
 
+
             logging.info('extracting %s features from %s' % (feature_name, co.full_name) )
 
-
+            ## start to fetch mongodb
             _count = co.count()
             batch_size = _count/25 if 'batch_size' not in kwargs else kwargs['batch_size']
 
-            ## fetch mongodb
             for i, mdoc in enumerate(co.find().batch_size(batch_size)):
 
-                if type(mdoc['feature']) == dict:
-                    pass
-
+                if type(mdoc['feature']) == dict: pass
                 ## transform to dictionary
                 elif type(mdoc['feature']) == list:
                     mdoc['feature'] = { f[0]:f[1] for f in mdoc['feature'] }
-
                 else:
                     raise TypeError('make sure the feature format is either <dict> or <list> in mongodb')
 
-                
-                emoID = self.emoID_map[mdoc['emotion']] if 'emoID' not in mdoc else mdoc['emoID']
+                ### get target label
+                label = mdoc[label_name]
 
                 ## store all features in a list
-                self._feature.append(mdoc['feature'])
-                self._target.append(emoID)
+                self._feature.append( mdoc['feature'] )
+                self._target.append( label )
 
                 logging.debug('mongo doc %d/%d fetched' % ( i+1, _count))
 
         ## vectorize
+        logging.debug('vectorizing')
         vec = DictVectorizer()
-        self.X = vec.fit_transform(self._feature)
-        self.y = np.array(self._target)
+        self.X = vec.fit_transform( self._feature )
+        self.y = np.array( self._target )
+
+    ### load from file, one line one feature
+    def add_file(self, path, label="$filename", LINE="\n", ITEM=","):
+        """
+        one line one feature
+        label: 
+            "$filename"   : extract label from filename
+                            e.g., accomplished_gist.csv --> accomplished
+        """
+
+        logging.debug('loading %s' % (path))
+
+        doc = open(path).read()
+        lines = doc.strip().split(LINE)
+
+        ## one line one feature --> one line one document
+        lines_num = np.array( [ map(lambda x:_toNumber(x), line.split(ITEM)) for line in lines] )
+        lines_num_T = lines_num.transpose()
+
+        # _samples = defaultdict(list)
+        # for fi, line in enumerate(lines): # i-th feature (680 lines --> 680 feautres)
+        #     samples = line.strip().split(ITEM)
+        #     for si, sample in enumerate(samples): # i-th sample (995 articles --> 995 samples)
+        #         feature_value = self._toNumber(sample)
+        #         _samples[si].append(feature_value)
+
+        X = []
+        for si in _samples:
+            X.append(_samples[si])
+
+        ## assign label to this loaded data
+        _label = label if not label == "$filename" else path.split('/')[-1].split('.')[0].split('_')[0]
+
+        y = [_label]*len(X)
+
+        self.Xs += X
+        self.ys += y
 
     def nFold(self, **kwargs):
         """
@@ -186,20 +234,38 @@ class FeatureFusion(object):
 
                 fw.write( ' '.join( map(lambda x:str(x), result) ) )
                 fw.write('\n')
-
+        
 if __name__ == '__main__':
+
+    ## %load_ext autoreload
+    ## %autoreload 2
 
     from FeatureFusion import FeatureFusion
 
-    F = FeatureFusion(mongo_addr="doraemon.iis.sinica.edu.tw", db_name="LJ40K", verbose=True)
+    ff = FeatureFusion(verbose=True)
+    ff.add_mongo(feature_name="TFIDF")
+    ff.fuse_mongo()
 
-    F.add(feature_name="TFIDF")
 
-    F.fuse()
+    # spca = SparsePCA(n_components=0.5)
+    # spca.fit_transform(ff.X)
 
-    F.kFold(n_folds=10, shuffle=True, loss="modified_huber", penalty="elasticnet")
+    # X = ff.X.toarray()
+    # pca = PCA(n_components=2)
+    # pca.fit_transform(X)
 
-    F.save()
+
+    # F = FeatureFusion(mongo_addr="doraemon.iis.sinica.edu.tw", db_name="LJ40K", verbose=True)
+
+    # F.add(feature_name="TFIDF")
+    # F.add(path="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out/out_f1/accomplished_gist.csv", label="accomplished")
+    # F.add(path="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out/out_f1/sleepy_gist.csv", label="sleepy")
+
+    # F.fuse_mongo()
+
+    # F.kFold(n_folds=10, shuffle=True, loss="modified_huber", penalty="elasticnet")
+
+    # F.save()
 
             
 
