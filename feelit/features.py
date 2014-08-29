@@ -22,10 +22,10 @@ class LoadFile(object):
     usage:
         >> from feelit.features import LoadFile
         >> lf = LoadFile(verbose=True)
-        >> lf.load(path="...")
-        >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1")
+        >>> lf.load(path="...")
+        >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1", data_range=800)
         >> lf.concatenate()
-        >> lf.dump(path="data/image_rgb_gist.Xy", ext="npz")
+        >> lf.dump(path="data/image_rgb_gist.Xy", ext=".npz")
     """
     def __init__(self, **kwargs):
         """
@@ -92,7 +92,7 @@ class LoadFile(object):
             else:
                 self.y = np.concatenate((self.y, self.ys[label]), axis=0)
 
-    def dump(self, path, ext="npz"):
+    def dump(self, path, ext=".npz"):
         ## amend path
         path = path if not ext or path.endswith(ext) else path+ext 
         logging.debug("dumping X, y to %s" % (path))
@@ -103,10 +103,10 @@ class FetchMongo(object):
     Fetch features from mongodb
     usage:
         >> from feelit.features import FetchMongo
-        >> fm = FetchMongo()
+        >> fm = FetchMongo(verbose=True)
         >> fm.fetch('TFIDF', '53a1921a3681df411cdf9f38', data_range=800)
         >> fm.tranform()
-        >> fm.dump(path="data/TFIDF.Xy", ext="npz")
+        >> fm.dump(path="data/TFIDF.Xy", ext=".npz")
     """
     def __init__(self, **kwargs):
         """
@@ -216,8 +216,7 @@ class FetchMongo(object):
             logging.debug( "fetch from %s with setting_id %s" % (collection_name, setting_id) )
             cur = self._db[collection_name].find( { "$query": {'setting': setting_id }, "$orderby": { "udocID": 1 } } ).batch_size(1024)
 
-        _count = cur.count()
-        logging.info("fetching %d documents from %s" % (_count, collection_name))
+        logging.info("fetching documents from %s" % (collection_name))
         
         for i, mdoc in enumerate(cur):
 
@@ -246,7 +245,7 @@ class FetchMongo(object):
             self.feature_dict_lst.append( feature_dict )
             self.label_lst.append( label )
 
-            logging.debug('mdoc %d/%d fetched' % ( i+1, _count))
+            logging.debug('mdoc %d fetched' % ( i+1 ))
             
         self._fetched.add( (collection_name, setting_id) )
 
@@ -269,7 +268,7 @@ class FetchMongo(object):
 
         return (self.X, self.y)
 
-    def dump(self, path, ext="npz"):
+    def dump(self, path, ext=".npz"):
         ## amend path
         path = path if not ext or path.endswith(ext) else path+ext 
         logging.debug("dumping X, y to %s" % (path))
