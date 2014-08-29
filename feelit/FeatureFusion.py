@@ -51,6 +51,10 @@ class FeatureFusion(object):
     def _toNumber(string, NaN=-1):
         return NaN if string.lower() == 'nan' else float(string)
 
+    
+
+
+
     ### mongodb
     def add_mongo(self, feature_name):
         """

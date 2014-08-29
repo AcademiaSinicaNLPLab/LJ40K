@@ -16,12 +16,14 @@ from sklearn.cross_validation import KFold
 from sklearn.preprocessing import StandardScaler
 
 
+
 class EmotionImage(object):
     """
     EmotionImage
     A scikit-learn wrapper for training Emotion-Image
     """
     __support_classifiers__ = ['SGD', 'SVC']
+
     def __init__(self, **kwargs):
         
         loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
@@ -36,8 +38,11 @@ class EmotionImage(object):
     def _toNumber(self, string, NaN=-1):
         return NaN if string.lower() == 'nan' else float(string)
 
-    def load(self, path, LINE="\n", ITEM=","):
+    def load(self, path, label="filename", LINE="\n", ITEM=","):
+        """
+        one line one feature
 
+        """
         logging.debug('loading %s' % (path))
 
         doc = open(path).read()
@@ -50,19 +55,17 @@ class EmotionImage(object):
                 feature_value = self._toNumber(sample)
                 _samples[si].append(feature_value)
 
-        # if self.sample_num < 0:
-        #     self.sample_num = len(_samples)
-
         X = []
         for si in _samples:
             X.append(_samples[si])
 
-        label = path.split('/')[-1].split('.')[0].split('_')[0]
+        ## assign label to this loaded data
+        _label = label if not label == "$filename" else path.split('/')[-1].split('.')[0].split('_')[0]
 
-        y = [label]*len(X)
+        y = [_label]*len(X)
 
-        self.Xs[label] = X
-        self.ys[label] = y
+        self.Xs[_label] = X
+        self.ys[_label] = y
 
     def loads(self, root, LINE="\n", ITEM=",", ext=None):
         for fn in os.listdir(root):
@@ -71,7 +74,10 @@ class EmotionImage(object):
             else:
                 self.load( path=os.path.join(root, fn), LINE=LINE, ITEM=ITEM )
 
-    def _assembly(self):
+    def _assembly(self, Xs, ys):
+        """
+        collect all loaded Xs, ys
+        """
         self.X = []
         self.y = []
         for label in self.Xs:
