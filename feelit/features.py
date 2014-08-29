@@ -24,6 +24,8 @@ class LoadFile(object):
         >> lf = LoadFile(verbose=True)
         >> lf.load(path="...")
         >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1")
+        >> lf.concatenate()
+        >> lf.dump(path="data/image_rgb_gist.Xy", ext="npz")
     """
     def __init__(self, **kwargs):
         """
@@ -94,7 +96,7 @@ class LoadFile(object):
         ## amend path
         path = path if not ext or path.endswith(ext) else path+ext 
         logging.debug("dumping X, y to %s" % (path))
-        np.save(path, X=self.X, y=self.y)
+        np.savez_compressed(path, X=self.X, y=self.y)
 
 class FetchMongo(object):
     """
@@ -102,8 +104,9 @@ class FetchMongo(object):
     usage:
         >> from feelit.features import FetchMongo
         >> fm = FetchMongo()
-        >> fm.fetch('TFIDF', '53a1921a3681df411cdf9f38')
+        >> fm.fetch('TFIDF', '53a1921a3681df411cdf9f38', data_range=800)
         >> fm.tranform()
+        >> fm.dump(path="data/TFIDF.Xy", ext="npz")
     """
     def __init__(self, **kwargs):
         """
@@ -152,7 +155,7 @@ class FetchMongo(object):
                 logging.error("can't find setting_id %s in collection %s" % (setting_id, collection_name) )
                 return False
 
-    def fetch(self, feature_name, setting_id, collection_name="auto", label_name="emotion"):
+    def fetch(self, feature_name, setting_id, collection_name="auto", label_name="emotion", data_range="all"):
 
         """
         Load all added features from mongodb
@@ -162,6 +165,7 @@ class FetchMongo(object):
                               further version will support "all" / "first" / "random" / <str: mongo_ObjectId> 
             collection_name : "auto"/<str>, e.g. "features.TFIDF"
             label_name      : the field storing the target label in mongo, e.g., "emotion" or "emoID"
+            data_range      : "all"/<int>, used for fetching parts of data in each category
 
         >> Returns:
             (X, y): (<sparse matrix>, <array>)
@@ -204,20 +208,28 @@ class FetchMongo(object):
         if not setting_id:
             ## no setting_id, fetch all
             logging.debug( "no setting_id specified, fetch all from %s" % (collection_name) )
-            cur = self._db[collection_name].find()
+
+            cur = self._db[collection_name].find( { "$query":{}, "$orderby": { "udocID": 1 } } ).batch_size(1024)
+            # cur = self._db[collection_name].find()
         else:
             ## with setting_id
             logging.debug( "fetch from %s with setting_id %s" % (collection_name, setting_id) )
-            cur = self._db[collection_name].find({'setting': setting_id })
+            cur = self._db[collection_name].find( { "$query": {'setting': setting_id }, "$orderby": { "udocID": 1 } } ).batch_size(1024)
 
         _count = cur.count()
         logging.info("fetching %d documents from %s" % (_count, collection_name))
         
-        for i, mdoc in enumerate(cur.batch_size(1024)):
+        for i, mdoc in enumerate(cur):
 
             if 'feature' not in mdoc:
                 logging.warn( "invalid format in the mongo document, skip this one." )
                 continue
+
+            ## filter by data_range
+            ## if data_range=800, then 0-799 will be kept
+            if type(data_range) == int:
+                if mdoc['ldocID'] >= data_range:
+                    continue
 
             ## get (and tranform) features into dictionary
             if type(mdoc['feature']) == dict:
@@ -239,7 +251,10 @@ class FetchMongo(object):
         self._fetched.add( (collection_name, setting_id) )
 
     def tranform(self, reduce_memory=True):
-
+        """
+        Dictionary --> Vectors <np.sparse_matrix>
+        save variable in self.X, self.y
+        """
         from sklearn.feature_extraction import DictVectorizer
         ## all feature_dict collected [ {...}, {...}, ..., {...} ]
         vec = DictVectorizer()
@@ -253,6 +268,12 @@ class FetchMongo(object):
             self.label_lst = []
 
         return (self.X, self.y)
+
+    def dump(self, path, ext="npz"):
+        ## amend path
+        path = path if not ext or path.endswith(ext) else path+ext 
+        logging.debug("dumping X, y to %s" % (path))
+        np.savez_compressed(path, X=self.X, y=self.y)
 
 # from sklearn.decomposition import TruncatedSVD as LSA
 # lsa = LSA(n_components=100)
