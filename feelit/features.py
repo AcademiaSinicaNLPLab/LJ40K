@@ -2,7 +2,7 @@
 
 ##########################################
 # classes:
-#   feelit > features > FetchFile
+#   feelit > features > LoadFile
 #   feelit > features > FetchMongo
 #
 # function: 
@@ -11,18 +11,19 @@
 #   -MaxisKao @ 20140828
 ##########################################
 
-import logging
+import logging, os
 from feelit import utils
 import numpy as np
 
 
-class FetchFile(object):
+class LoadFile(object):
     """
     Fetch features from files
     usage:
-        >> from feelit.features import FetchFile
-        >> ff = FetchFile()
-        >> ff.fetch()
+        >> from feelit.features import LoadFile
+        >> lf = LoadFile(verbose=True)
+        >> lf.load(path="...")
+        >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1")
     """
     def __init__(self, **kwargs):
         """
@@ -31,7 +32,60 @@ class FetchFile(object):
         """        
         loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
         logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)        
-         
+        
+        self.Xs = {}
+        self.ys = {}
+        self.X = None
+        self.y = None
+        
+
+    def load(self, path, label="auto", **kwargs):
+        """
+        input: <csv file> one feature per line
+        output: <array> one document per line
+        Parameters:
+            path: path of a csv file
+            label: "auto"/<str>, label of this data
+        Returns:
+            <np.array> [ [f1,...fn], [f1,...,fn],... ]
+        """
+        logging.debug('loading %s' % (path))
+
+        ## load csv files to <float> type
+        lines = utils.load_csv(path, **kwargs)
+
+        ## to numpy array and transpose
+        X = np.array(lines).transpose()
+
+        ## assign label to this loaded data
+        if label == "auto":
+            label = path.split('/')[-1].split('.')[0].split('_')[0]
+
+        y = np.array([label]*len(X))
+
+        self.Xs[label] = X
+        self.ys[label] = y
+
+    def loads(self, root, ext=None, **kwargs):
+        for fn in os.listdir(root):
+            if ext and not fn.endswith(ext):
+                continue
+            else:
+                self.load( path=os.path.join(root, fn), **kwargs)
+
+        # self.concatenate()
+
+    def concatenate(self):
+        for label in self.Xs:
+            if self.X == None: 
+                self.X = np.array(self.Xs[label])
+            else:
+                self.X = np.concatenate((self.X, self.Xs[label]), axis=0)
+            if self.y == None: 
+                self.y = np.array(self.ys[label])
+            else:
+                self.y = np.concatenate((self.y, self.ys[label]), axis=0)
+
 
 class FetchMongo(object):
     """
@@ -80,7 +134,6 @@ class FetchMongo(object):
         else:
             ### the collection_name exists,
             ### check if setting_id is valid
-
             available_settings = self._db[collection_name].distinct('setting') 
 
             if setting_id in available_settings:
@@ -89,42 +142,6 @@ class FetchMongo(object):
             else:
                 logging.error("can't find setting_id %s in collection %s" % (setting_id, collection_name) )
                 return False
-
-            # if setting_id == "all" and len(available_settings) == 1:
-            #     setting_id = available_settings[0]
-            #     logging.info( "use setting %s automatically" % (setting_id) )
-
-            # elif setting_id == "all" and len(available_settings) == 0:
-            #     logging.info( "no filed named 'setting', will include all data")
-
-            # if setting_id and setting_id in available_settings:
-            #     logging.debug( "valid setting_id" )
-            #     ## will return True
-                
-            # elif setting_id and setting_id not in available_settings:
-            #     logging.warn( "setting %s doe'nt exists, specify a valid setting_id from %s" % (setting_id, ", ".join(available_settings)) )
-            #     return False
-
-            # elif setting_id == "all" and len(available_settings) > 1:
-            #     logging.warn( "multiple settings found, specify a setting_id from %s" % ( ", ".join(available_settings) ) )
-            #     return False
-
-            # elif setting_id == "all" and len(available_settings) == 1:
-            #     ## use first setting_id directly
-            #     logging.info( "use setting %s automatically" % (setting_id) )
-            #     setting_id = available_settings[0]
-            #     ## will return True
-
-            # elif not setting_id and len(available_settings) == 0:
-            #     logging.info( "no filed named 'setting', will include all data")
-            #     ## don't use setting_id in the query
-            #     ## will return True
-
-            # else:
-            #     raise Exception("unknown error, check the input setting_id and collection_name")
-
-            # self._setting_id = setting_id
-            # return True
 
     def fetch(self, feature_name, setting_id, collection_name="auto", label_name="emotion"):
 
