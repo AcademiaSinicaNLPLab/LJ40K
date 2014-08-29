@@ -38,7 +38,6 @@ class LoadFile(object):
         self.X = None
         self.y = None
         
-
     def load(self, path, label="auto", **kwargs):
         """
         input: <csv file> one feature per line
@@ -46,16 +45,23 @@ class LoadFile(object):
         Parameters:
             path: path of a csv file
             label: "auto"/<str>, label of this data
+            range
+            kwargs:
+                data_range: "all"/<int>: [0:]/[0:<int>]
+                parameters of utils.load_csv()
         Returns:
             <np.array> [ [f1,...fn], [f1,...,fn],... ]
         """
         logging.debug('loading %s' % (path))
+        data_range = "all" if not 'data_range' in kwargs else kwargs["data_range"]
 
         ## load csv files to <float> type
         lines = utils.load_csv(path, **kwargs)
 
         ## to numpy array and transpose
         X = np.array(lines).transpose()
+        if type(data_range) == int and data_range < len(X):
+            X = X[:data_range]
 
         ## assign label to this loaded data
         if label == "auto":
@@ -73,8 +79,6 @@ class LoadFile(object):
             else:
                 self.load( path=os.path.join(root, fn), **kwargs)
 
-        # self.concatenate()
-
     def concatenate(self):
         for label in self.Xs:
             if self.X == None: 
@@ -86,6 +90,11 @@ class LoadFile(object):
             else:
                 self.y = np.concatenate((self.y, self.ys[label]), axis=0)
 
+    def dump(self, path, ext="npz"):
+        ## amend path
+        path = path if not ext or path.endswith(ext) else path+ext 
+        logging.debug("dumping X, y to %s" % (path))
+        np.save(path, X=self.X, y=self.y)
 
 class FetchMongo(object):
     """
@@ -244,7 +253,6 @@ class FetchMongo(object):
             self.label_lst = []
 
         return (self.X, self.y)
-
 
 # from sklearn.decomposition import TruncatedSVD as LSA
 # lsa = LSA(n_components=100)
