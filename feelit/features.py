@@ -22,9 +22,7 @@ class LoadFile(object):
     usage:
         >> from feelit.features import LoadFile
         >> lf = LoadFile(verbose=True)
-        >>> lf.load(path="...")
         >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1", data_range=800)
-        >> lf.concatenate()
         >> lf.dump(path="data/image_rgb_gist.Xy", ext=".npz")
     """
     def __init__(self, **kwargs):
@@ -81,6 +79,9 @@ class LoadFile(object):
             else:
                 self.load( path=os.path.join(root, fn), **kwargs)
 
+        logging.debug("All loaded. Concatenate Xs and ys")
+        self.concatenate()
+
     def concatenate(self):
         for label in self.Xs:
             if self.X == None: 
@@ -104,8 +105,7 @@ class FetchMongo(object):
     usage:
         >> from feelit.features import FetchMongo
         >> fm = FetchMongo(verbose=True)
-        >> fm.fetch('TFIDF', '53a1921a3681df411cdf9f38', data_range=800)
-        >> fm.tranform()
+        >> fm.fetch_transform('TFIDF', '53a1921a3681df411cdf9f38', data_range=800)
         >> fm.dump(path="data/TFIDF.Xy", ext=".npz")
     """
     def __init__(self, **kwargs):
@@ -268,6 +268,13 @@ class FetchMongo(object):
 
         return (self.X, self.y)
 
+    def fetch_transform(self, feature_name, setting_id, collection_name="auto", label_name="emotion", data_range="all", reduce_memory=True):
+        """
+        a wrapper of fetch() and transform()
+        """
+        self.fetch(feature_name, setting_id, collection_name=collection_name, label_name=label_name, data_range=data_range)
+        self.tranform(reduce_memory=reduce_memory)
+
     def dump(self, path, ext=".npz"):
         ## amend path
         path = path if not ext or path.endswith(ext) else path+ext 
@@ -275,8 +282,9 @@ class FetchMongo(object):
         np.savez_compressed(path, X=self.X, y=self.y)
 
 # from sklearn.decomposition import TruncatedSVD as LSA
-# lsa = LSA(n_components=100)
+# lsa = LSA(n_components=512)
 # _X = lsa.fit_transform(fm.X) ## _X: <40000x100>
+# np.savez_compressed('data/TFIDF_LSA512.Xy.npz', X=X, y=y)
 
 class Fusion(object):
     """
