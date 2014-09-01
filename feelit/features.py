@@ -73,17 +73,22 @@ class LoadFile(object):
         self.ys[label] = y
 
     def loads(self, root, ext=None, **kwargs):
+        fns = []
         for fn in os.listdir(root):
             if ext and not fn.endswith(ext):
                 continue
             else:
+                fns.append( fn )
+
+        for fn in sorted(fns):
                 self.load( path=os.path.join(root, fn), **kwargs)
 
         logging.debug("All loaded. Concatenate Xs and ys")
         self.concatenate()
 
     def concatenate(self):
-        for label in self.Xs:
+        labels = sorted(self.Xs.keys())
+        for label in labels:
             if self.X == None: 
                 self.X = np.array(self.Xs[label])
             else:
@@ -288,7 +293,239 @@ class FetchMongo(object):
 
 class Fusion(object):
     """
-    docstring for Fusion
+    Fusion features from .npz files
+    usage:
+        >> from feelit.features import Fusion
+        >> fu = Fusion(verbose=True)
+        >> fu.loads(a1, a2, ...)
+        >> fu.fuse()
+        >> fu.dump()
     """
-    def __init__(self, arg):
-        pass
+    def __init__(self, *args, **kwargs):
+        """
+        Fusion( a1, a1, ..., verbose=True)
+        Parameters
+        ----------
+        a1, a2, ... : str
+            files to be fused
+        verbose : boolean, optional
+            True/False, set True to log debug level message
+        """
+        loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
+        logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)
+
+        self.Xs = {}
+        self.ys = {}
+
+        self.X = None
+        self.y = None
+
+    def load(self, path):
+        """
+        load(path)
+
+        load single file to fuse
+
+        Parameters
+        ----------
+        path : str
+            path to the candidate file
+
+        Returns
+        -------
+        status : boolean
+            True : added
+            False : not added
+        """
+
+        ## extract filename to be the feature_name (key) in Xs and ys
+        fn = path.split('/')[-1].split('.npz')[0]
+
+        if fn in self.Xs or fn in self.ys:
+            logging.info('feature %s already exists' % (fn))
+            return False
+        else:
+            data = np.load(path)
+
+            logging.info('loading %s into self.Xs[%s], self.ys[%s]' % (path, fn, fn))
+
+            logging.debug('loading X...')
+            self.Xs[fn] = data['X']
+            logging.debug('loading y...')
+            self.ys[fn] = data['y']
+
+            return True
+
+    def loads(self, *args):
+        """
+        loads(a1, a2, ...)
+
+        load multiple files to fuse
+
+        Parameters
+        ----------
+        a1, a2, ... : str
+            files to be fused
+        """
+        for fn in args:
+            self.load(fn)
+
+    def fuse(self, reduce_memory=False, override=False):
+        """
+        fuse loaded feature arrays
+
+        Parameters
+        ----------
+        reduce_memory : boolean
+            set True to del self.Xs once complete fusion
+        override : boolean
+            set True to override previous fusion results
+
+        Returns
+        -------
+        status : boolean
+            True: fuse successfully
+            False: no fusion performed
+        """
+        logging.info('fusing %s ...' % (', '.join(self.Xs.keys())))
+
+        if (not self.X or not self.y) and override:
+            logging.warn('set override=True to override current fusion results')
+            return False
+        else:
+
+            logging.debug('fusing X')
+            self.X = np.concatenate(self.Xs.values(), axis=1)
+            if reduce_memory: del self.Xs
+
+            logging.debug('fusing y')
+            self.y = self.ys[ self.ys.keys()[0] ]
+            return True
+
+    def dump(self, path="auto", ext=".npz"):
+
+        ## text_DepPairs_LSA512.Xy
+        ## '_'.join(x.split('.Xy')[0].split('_')[1:]) --> DepPairs_LSA512
+        if path == "auto":
+            path = '+'.join(sorted([ '_'.join(x.split('.Xy')[0].split('_')[1:]) for x in self.Xs.keys() ]))
+
+        ## amend path
+        path = path if not ext or path.endswith(ext) else path+ext
+        logging.debug("dumping X, y to %s" % (path))
+        np.savez_compressed(path, X=self.X, y=self.y)
+
+class Learning(object):
+    """
+    usage:
+        >> from feelit.features import Learning
+        >> l = Learning(verbose=True)
+        >> l.load(path="data/DepPairs_LSA512+TFIDF_LSA512+keyword_LSA512+rgba_gist+rgba_phog.Xy.npz")
+        >> l.kFold()
+        >> l.save(root="results")
+    """
+    def __init__(self, X=None, y=None, **kwargs):
+
+        loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
+        logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)     
+
+        self.X = X
+        self.y = y
+        self.kfold_results = []
+
+        self.check_and_amend()
+
+    def load(self, path):
+        # fn: DepPairs_LSA512+TFIDF_LSA512+keyword_LSA512+rgba_gist+rgba_phog.npz
+        # fn: image_rgb_gist.Xy.npz
+        data = np.load(path)
+        self.X = data['X']
+        self.y = data['y']
+        self.feature_name = path.split('/')[-1].replace('.Xy','').split('.npz')[0]
+        self.fn = self.feature_name
+
+        self.check_and_amend()
+
+    def nFold(self, **kwargs):
+        self.KFold(**kwargs)
+
+    def check_and_amend(self, NaN=0.0, NONE=0.0):
+        if self.X and self.y:
+            replaced = 0
+            for i in xrange(len(self.X)):
+                for j in xrange(len(self.X[i])):
+                    if type(self.X[i][j]) == float:
+                        continue
+                    else:
+                        replaced += 1
+                        if self.X[i][j] == None:
+                            self.X[i][j] = NONE
+                        elif self.X[i][j] == 'NaN':
+                            self.X[i][j] = NaN
+                        else:
+                            self.X[i][j] = NONE
+            return replaced
+        else:
+            return False
+        
+    def kFold(self, **kwargs):
+
+        from sklearn import svm
+        from sklearn.cross_validation import KFold
+        from sklearn.preprocessing import StandardScaler
+
+        # config n-fold verification
+        n_folds = 10 if 'n_folds' not in kwargs else kwargs['n_folds']
+        shuffle = True if 'shuffle' not in kwargs else kwargs['shuffle']
+        kf = KFold( len(self.X), n_folds=n_folds, shuffle=shuffle )
+
+        ## setup a Scaler
+        with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
+        with_std = True if 'with_std' not in kwargs else kwargs['with_std']
+        scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
+
+        for (i, (train_index, test_index)) in enumerate(kf):
+
+            logging.info('cross validation round %d' % (i+1))
+            X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
+            X_train, X_test, y_train, y_test = X[train_index], X[test_index], y[train_index], y[test_index]
+
+            logging.debug("setting scaler")
+
+            X_train = scaler.fit_transform(X_train)
+            X_test = scaler.fit_transform(X_test)
+
+            logging.debug('training with svm.SVC classifier')
+            clf = svm.SVC()
+
+            logging.debug("training")
+            clf.fit(X_train, y_train)
+
+            logging.debug('get score %.3f' % (score))
+            score = clf.score(X_test, y_test)
+
+            logging.debug("predicting")
+            result = clf.predict(X_test)
+
+            self.kfold_results.append( (i+1, y_test, result) )
+
+    def save(self, root=".", feature_name=""):
+        """
+        """
+        if not self.feature_name:
+            if feature_name:
+                self.feature_name = feature_name
+            else:
+                logging.warn("speficy the feature_name for the file to be saved")
+                return False
+
+        for ith, y_test, result in self.kfold_results:
+
+            out_fn = "%s.fold-%d.result" % (self.feature_name, ith)
+
+            with open(out_fn, 'w') as fw:
+
+                fw.write( ','.join( map(lambda x:str(x), y_test) ) )
+                fw.write('\n')
+
+                fw.write( ','.join( map(lambda x:str(x), result) ) )
+                fw.write('\n')
