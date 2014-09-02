@@ -432,8 +432,6 @@ class Learning(object):
         self.y = y
         self.kfold_results = []
 
-        self.check_and_amend()
-
     def load(self, path):
         # fn: DepPairs_LSA512+TFIDF_LSA512+keyword_LSA512+rgba_gist+rgba_phog.npz
         # fn: image_rgb_gist.Xy.npz
@@ -443,28 +441,46 @@ class Learning(object):
         self.feature_name = path.split('/')[-1].replace('.Xy','').split('.npz')[0]
         self.fn = self.feature_name
 
-        self.check_and_amend()
-
     def nFold(self, **kwargs):
         self.KFold(**kwargs)
 
     def check_and_amend(self, NaN=0.0, NONE=0.0):
-        if self.X and self.y:
-            replaced = 0
-            for i in xrange(len(self.X)):
-                for j in xrange(len(self.X[i])):
-                    if type(self.X[i][j]) == float:
-                        continue
-                    else:
-                        replaced += 1
-                        if self.X[i][j] == None:
-                            self.X[i][j] = NONE
-                        elif self.X[i][j] == 'NaN':
-                            self.X[i][j] = NaN
+        """
+        - deal with transformation of sparse matrix format
+            i.e., Reassign X by X = X.all(): because of numpy.load()
+        - replace NaN and None if a dense matrix is given
+        """
+        logging.debug("start check and amend matrix X")
+
+        if self.X != None and self.y != None:
+
+            if utils.isSparse(self.X):
+                ## if X is a sparse array --> it came from DictVectorize
+                ## Reassign X by X = X.all(): because of numpy.load()
+                self.X = self.X.all()
+                logging.debug("sparse matrix detected.")
+                logging.debug("no need to further amending on a sparse matrix")
+                return False
+            else:
+                logging.debug('dense matrix detected')
+                logging.debug("start to check and amend matrix value, fill NaN with %f and None with %f" % (NaN, NONE))
+                replaced = 0
+                for i in xrange(len(self.X)):
+                    for j in xrange(len(self.X[i])):
+                        if type(self.X[i][j]) == float:
+                            continue
                         else:
-                            self.X[i][j] = NONE
-            return replaced
+                            replaced += 1
+                            if self.X[i][j] == None:
+                                self.X[i][j] = NONE
+                            elif self.X[i][j] == 'NaN':
+                                self.X[i][j] = NaN
+                            else:
+                                self.X[i][j] = NONE
+                self._checked = True
+                return replaced
         else:
+            logging.debug("no X to be checked and amended")
             return False
         
     def kFold(self, **kwargs):
@@ -473,21 +489,35 @@ class Learning(object):
         from sklearn.cross_validation import KFold
         from sklearn.preprocessing import StandardScaler
 
+        ## amend dense matrix: replace NaN and None with float values
+        self.check_and_amend()
+
         # config n-fold verification
         n_folds = 10 if 'n_folds' not in kwargs else kwargs['n_folds']
         shuffle = True if 'shuffle' not in kwargs else kwargs['shuffle']
-        kf = KFold( len(self.X), n_folds=n_folds, shuffle=shuffle )
+
+        ## get #(rows) of self.X
+        n = utils.getArrayN(self.X)
+
+        ## setup a kFolder
+        kf = KFold(n=n , n_folds=n_folds, shuffle=shuffle )
+        logging.debug("setup a kFold with n=%d, n_folds=%d" % (n, n_folds))
 
         ## setup a Scaler
+        logging.debug("setup a StandardScaler")
         with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
         with_std = True if 'with_std' not in kwargs else kwargs['with_std']
+
+        # Cannot center sparse matrices, `with_mean` should be set as `False`
+        if utils.isSparse(self.X):
+            with_mean = False
+        
         scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
 
         for (i, (train_index, test_index)) in enumerate(kf):
 
             logging.info('cross validation round %d' % (i+1))
             X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
-            X_train, X_test, y_train, y_test = X[train_index], X[test_index], y[train_index], y[test_index]
 
             logging.debug("setting scaler")
 
@@ -500,8 +530,9 @@ class Learning(object):
             logging.debug("training")
             clf.fit(X_train, y_train)
 
-            logging.debug('get score %.3f' % (score))
+            
             score = clf.score(X_test, y_test)
+            logging.debug('get score %.3f' % (score))
 
             logging.debug("predicting")
             result = clf.predict(X_test)
@@ -518,11 +549,13 @@ class Learning(object):
                 logging.warn("speficy the feature_name for the file to be saved")
                 return False
 
+        subfolder = self.feature_name
+
         for ith, y_test, result in self.kfold_results:
 
             out_fn = "%s.fold-%d.result" % (self.feature_name, ith)
 
-            with open(out_fn, 'w') as fw:
+            with open(os.path.join(root, subfolder, out_fn), 'w') as fw:
 
                 fw.write( ','.join( map(lambda x:str(x), y_test) ) )
                 fw.write('\n')
