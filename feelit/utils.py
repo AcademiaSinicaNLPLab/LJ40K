@@ -99,7 +99,31 @@ def amend(missing, input_path, output_path, **kwargs):
         with open(out_path, 'w') as fw:
             fw.write(content)
 
+def getArrayN(array):
+    """
+    Get number of rows in the input array
+    """
+    n = False
+    try:
+        ## dense matrix
+        n = len(array)
+    except TypeError:
+        ## sparse matrix
+        n = array.shape[0]
+    return n
 
+def isSparse(array):
+    """
+    Detect if input is a sparse array or not
+    """
+    try:
+        ## dense matrix
+        len(array)
+    except TypeError:
+        ## sparse matrix
+        return True
+    else:
+        return False
 
         
 
