@@ -23,12 +23,15 @@ class RBF(object):
     usage:
         >> from feelit.kernel import RBF
         >> rbf = RBF()
-        >> rbf.load(path="text_TFIDF.Xy.npz")
-        >> rbf.build()
-
+        >> rbf.load(path="data/text_TFIDF.Xy.npz")
+        
     maybe do random sampling before build:
         >> from feelit.utils import RandomSample
         >> rbf.X, rbf.y = RandomSample((rbf.X, rbf.y), 0.1) # keep only 10%
+        >> rbf.X, rbf.y = RandomSample((rbf.X, rbf.y), index_file="data/idxs.pkl") # use certain index file
+
+    build the matrix K
+        >> >> rbf.build()
     """
     def __init__(self, **kwargs):
         """
@@ -58,7 +61,7 @@ class RBF(object):
         if 'X' not in data.files or 'y' not in data.files:
             logging.error("check the format in %s, must have X and y inside." % (path))
             return False
-        
+
         ## sparse: if not data['X'].shape
         ## dense:  if data['X'].shape
         self.X = data['X'] if data['X'].shape else data['X'].all().toarray()

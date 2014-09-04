@@ -156,7 +156,8 @@ def RandomSample(arrays, dim=0.1, index_file=None):
     =====
         >> from feelit.utils import RandomSample
         >> (_X, _y) = RandomSample((X, y), 0.5) ## ratio version
-        >> (_X, _y) = RandomSample((X, y), 100) ## set target dimension directly   
+        >> (_X, _y) = RandomSample((X, y), 100) ## set target dimension directly
+        >> (_X, _y) = RandomSample((X, y), index_file="data/idxs.pkl") ## specify a certain list of indexes to be deleted
 
     Parameters
     ==========
