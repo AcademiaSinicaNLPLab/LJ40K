@@ -289,7 +289,39 @@ class FetchMongo(object):
 # from sklearn.decomposition import TruncatedSVD as LSA
 # lsa = LSA(n_components=512)
 # _X = lsa.fit_transform(fm.X) ## _X: <40000x100>
-# np.savez_compressed('data/TFIDF_LSA512.Xy.npz', X=X, y=y)
+# np.savez_compressed('data/TFIDF_LSA512.Xy.npz', X=_X, y=y)
+
+# from sklearn.decomposition import FastICA as ICA
+# ica = ICA(n_components=40)
+# _X = ica.fit_transform(fm.X)
+# np.savez_compressed('data/TFIDF_ICA40.Xy.npz', X=_X, y=y)
+
+class DimensionReduction(object):
+    """
+    DimensionReduction: wrapper of LSA, ICA in scikit-learn
+
+    Parameters
+    ==========
+        algorithm : str
+            support "TruncatedSVD" (or "LSA"), FastICA (or "ICA")
+    """
+    def __init__(self, algorithm):
+        algo = algorithm.strip().lower()
+        if algo in ("truncatedsvd", "lsa"):
+            self.algorithm = "LSA"
+        elif algo in ("fastica", "ica"):
+            self.algorithm = "ICA"
+
+    def reduction(self, X, n_components):
+        if self.algorithm == "LSA":
+            from sklearn.decomposition import TruncatedSVD as LSA
+            worker = LSA(n_components=n_components)
+        elif self.algorithm == "ICA":
+            from sklearn.decomposition import FastICA as ICA
+            worker = ICA(n_components=n_components)
+
+        _X = worker.fit_transform(X)
+        return _X
 
 class Fusion(object):
     """
