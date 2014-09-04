@@ -125,7 +125,59 @@ def isSparse(array):
     else:
         return False
 
-        
+def RandomSample(S, dim):
+    """
+    Usage
+    =====
+        >> from feelit.utils import RandomSample
+        >> _S = RandomSample(S, 0.5) ## ratio version
+        >> _S = RandomSample(S, 100) ## set target dimension directly   
+
+    Parameters
+    ==========
+        S: numpy.ndarray
+            a numpy array
+        dim: float or int
+            target dimension
+            use float to set ratio
+            e.g.,
+                S is a <1024 x 10> matrix
+                dim = 0.7
+                then the target dimension will be 1024*0.7 = 716.8 --> 716
+
+    Returns
+    =======
+    sampled_S: numpy.ndarray
+        a random down-sampled array
+    """
+    # get number of samples
+    n = len(S) if 'shape' not in dir(S) else S.shape[0]
+
+    # set dim
+    if type(dim) == int and dim < n:
+        pass
+    elif type(dim) == int and dim >= n:
+        return False
+    elif type(dim) == float:
+        dim = int(dim*n)
+        if dim == 0:
+            return False
+
+    # random sampling
+    import random
+    import numpy as np
+
+    # get all indexes
+    all_indexes = range(n) 
+
+    # shuffle them and choose [0:dim]
+    random.shuffle(all_indexes)
+    choosen_indexes = set(all_indexes[:dim])
+
+    delete_indexes = [idx for idx in all_indexes if idx not in choosen_indexes]
+    sampled_S = np.delete(S, delete_indexes, axis=0)
+
+    return sampled_S
 
 
 
