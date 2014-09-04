@@ -125,59 +125,69 @@ def isSparse(array):
     else:
         return False
 
-def RandomSample(S, dim):
+def RandomSample(arrays, dim=0.1):
     """
     Usage
     =====
         >> from feelit.utils import RandomSample
-        >> _S = RandomSample(S, 0.5) ## ratio version
-        >> _S = RandomSample(S, 100) ## set target dimension directly   
+        >> (_X, _y) = RandomSample((X, y), 0.5) ## ratio version
+        >> (_X, _y) = RandomSample((X, y), 100) ## set target dimension directly   
 
     Parameters
     ==========
-        S: numpy.ndarray
+        S: list/tuple of numpy.ndarray(s)
             a numpy array
-        dim: float or int
+        dim: float or int, default 0.1
             target dimension
             use float to set ratio
             e.g.,
                 S is a <1024 x 10> matrix
-                dim = 0.7
-                then the target dimension will be 1024*0.7 = 716.8 --> 716
-
+                dim = 0.1
+                target dimension will be 1024*0.1 = 102.4 --> 102
+                floor function is used by default
     Returns
     =======
-    sampled_S: numpy.ndarray
+    sampled_S: list of numpy.ndarray
         a random down-sampled array
     """
-    # get number of samples
-    n = len(S) if 'shape' not in dir(S) else S.shape[0]
-
-    # set dim
-    if type(dim) == int and dim < n:
-        pass
-    elif type(dim) == int and dim >= n:
-        return False
-    elif type(dim) == float:
-        dim = int(dim*n)
-        if dim == 0:
-            return False
-
     # random sampling
     import random
     import numpy as np
+    
+    ## check if n are all the same
+    ns = [ len(array) if 'shape' not in dir(array) else array.shape[0] for array in arrays ]
+    if len(set(ns)) != 1:
+        ## n(s) differ in the input array(s)
+        return False
+    else:
 
-    # get all indexes
-    all_indexes = range(n) 
+        # get number of samples
+        n = ns[0]
 
-    # shuffle them and choose [0:dim]
-    random.shuffle(all_indexes)
-    choosen_indexes = set(all_indexes[:dim])
+        # set dim
+        if type(dim) == int and dim < n:
+            pass
+        elif type(dim) == int and dim >= n:
+            return False
+        elif type(dim) == float:
+            dim = int(dim*n)
+            if dim == 0:
+                return False
 
-    delete_indexes = [idx for idx in all_indexes if idx not in choosen_indexes]
-    sampled_S = np.delete(S, delete_indexes, axis=0)
+        # get all indexes
+        all_indexes = range(n) 
 
-    return sampled_S
+        # shuffle them and choose [0:dim]
+        random.shuffle(all_indexes)
+        choosen_indexes = set(all_indexes[:dim])
+        delete_indexes = [idx for idx in all_indexes if idx not in choosen_indexes]
+
+        sampled = []
+        for array in arrays:
+            _array = np.delete(array, delete_indexes, axis=0)
+            sampled.append( _array )
+
+        return sampled
 
 
 
