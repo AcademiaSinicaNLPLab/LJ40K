@@ -4,9 +4,9 @@
 # classes:
 #   feelit > features > LoadFile
 #   feelit > features > FetchMongo
-#
-# function: 
-#   fetch features from file
+#   feelit > features > DimensionReduction
+#   feelit > features > Fusion
+#   feelit > features > Learning
 #
 #   -MaxisKao @ 20140828
 ##########################################
@@ -286,19 +286,23 @@ class FetchMongo(object):
         logging.debug("dumping X, y to %s" % (path))
         np.savez_compressed(path, X=self.X, y=self.y)
 
-# from sklearn.decomposition import TruncatedSVD as LSA
-# lsa = LSA(n_components=512)
-# _X = lsa.fit_transform(fm.X) ## _X: <40000x100>
-# np.savez_compressed('data/TFIDF_LSA512.Xy.npz', X=_X, y=y)
-
-# from sklearn.decomposition import FastICA as ICA
-# ica = ICA(n_components=40)
-# _X = ica.fit_transform(fm.X)
-# np.savez_compressed('data/TFIDF_ICA40.Xy.npz', X=_X, y=y)
-
 class DimensionReduction(object):
+    # from sklearn.decomposition import TruncatedSVD as LSA
+    # lsa = LSA(n_components=512)
+    # _X = lsa.fit_transform(fm.X) ## _X: <40000x100>
+    # np.savez_compressed('data/TFIDF_LSA512.Xy.npz', X=_X, y=y)
+
+    # from sklearn.decomposition import FastICA as ICA
+    # ica = ICA(n_components=40)
+    # _X = ica.fit_transform(fm.X)
+    # np.savez_compressed('data/TFIDF_ICA40.Xy.npz', X=_X, y=y)    
     """
     DimensionReduction: wrapper of LSA, ICA in scikit-learn
+
+    usage:
+        >> from feelit.features import DimensionReduction
+        >> dr = DimensionReduction(algorithm="LSA")
+        >> _X = dr.reduction(X, n_components=40)
 
     Parameters
     ==========
