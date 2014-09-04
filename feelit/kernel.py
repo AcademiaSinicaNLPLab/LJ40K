@@ -19,7 +19,7 @@ from math import exp
 class RBF(object):
     """
     build RBF kernel matrix from the input feature vectors
-    
+
     usage:
         >> from feelit.kernel import RBF
         >> rbf = RBF()
@@ -53,13 +53,16 @@ class RBF(object):
         Returns:
             X, y
         """
-        try:
-            data = np.load(path)
-            self.X = data['X'].all().toarray()
-            self.y = data['y']
-        except IOError:
-            logging.error("no such file: %s" % (path))
+        data = np.load(path)
+
+        if 'X' not in data.files or 'y' not in data.files:
+            logging.error("check the format in %s, must have X and y inside." % (path))
             return False
+        
+        ## sparse: if not data['X'].shape
+        ## dense:  if data['X'].shape
+        self.X = data['X'] if data['X'].shape else data['X'].all().toarray()
+        self.y = data['y']
 
     def _squared_Euclidean_distance(self, p, q):
         return sum([ (_p-_q)*(_p-_q) for _p, _q in zip(p, q)])
