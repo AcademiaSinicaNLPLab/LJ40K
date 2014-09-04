@@ -125,7 +125,32 @@ def isSparse(array):
     else:
         return False
 
-def RandomSample(arrays, dim=0.1):
+def GenerateDeleteIndexes(n, dim, path=None):
+    """
+    Usage
+    =====
+        >> from feelit.utils import GenerateDeleteIndexes
+        ## write to file
+        >> GenerateDeleteIndexes(n=32000, dim=3200, path="idxs.pkl")
+        ## directly return
+        >> GenerateDeleteIndexes(n=32000, dim=3200)
+    """
+    import random
+    # get all indexes
+    all_indexes = range(n) 
+    # shuffle them and choose [0:dim]
+    random.shuffle(all_indexes)
+    choosen_indexes = set(all_indexes[:dim])
+    delete_indexes = [idx for idx in all_indexes if idx not in choosen_indexes]
+
+    if path:
+        import pickle
+        pickle.dump( delete_indexes, open(path, "w"), protocol=pickle.HIGHEST_PROTOCOL )
+    else:
+        return delete_indexes
+
+
+def RandomSample(arrays, dim=0.1, index_file=None):
     """
     Usage
     =====
@@ -153,7 +178,7 @@ def RandomSample(arrays, dim=0.1):
     # random sampling
     import random
     import numpy as np
-    
+
     ## check if n are all the same
     ns = [ len(array) if 'shape' not in dir(array) else array.shape[0] for array in arrays ]
     if len(set(ns)) != 1:
@@ -161,26 +186,33 @@ def RandomSample(arrays, dim=0.1):
         return False
     else:
 
-        # get number of samples
-        n = ns[0]
+        delete_indexes = []
 
-        # set dim
-        if type(dim) == int and dim < n:
-            pass
-        elif type(dim) == int and dim >= n:
-            return False
-        elif type(dim) == float:
-            dim = int(dim*n)
-            if dim == 0:
+        if index_file:
+            import pickle
+            delete_indexes = pickle.load(open(index_file))
+
+        if not delete_indexes:
+            # get number of samples
+            n = ns[0]
+
+            # set dim
+            if type(dim) == int and dim < n:
+                pass
+            elif type(dim) == int and dim >= n:
                 return False
+            elif type(dim) == float:
+                dim = int(dim*n)
+                if dim == 0:
+                    return False
 
-        # get all indexes
-        all_indexes = range(n) 
+            # get all indexes
+            all_indexes = range(n) 
 
-        # shuffle them and choose [0:dim]
-        random.shuffle(all_indexes)
-        choosen_indexes = set(all_indexes[:dim])
-        delete_indexes = [idx for idx in all_indexes if idx not in choosen_indexes]
+            # shuffle them and choose [0:dim]
+            random.shuffle(all_indexes)
+            choosen_indexes = set(all_indexes[:dim])
+            delete_indexes = [idx for idx in all_indexes if idx not in choosen_indexes]
 
         sampled = []
         for array in arrays:
