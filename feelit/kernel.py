@@ -19,12 +19,16 @@ from math import exp
 class RBF(object):
     """
     build RBF kernel matrix from the input feature vectors
-
+    
     usage:
         >> from feelit.kernel import RBF
         >> rbf = RBF()
         >> rbf.load(path="text_TFIDF.Xy.npz")
         >> rbf.build()
+
+    maybe do random sampling before build:
+        >> from feelit.utils import RandomSample
+        >> rbf.X, rbf.y = RandomSample((rbf.X, rbf.y), 0.1) # keep only 10%
     """
     def __init__(self, **kwargs):
         """
