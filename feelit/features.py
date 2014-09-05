@@ -15,6 +15,66 @@ import logging, os
 from feelit import utils
 import numpy as np
 
+def load(path, fields="ALL"):
+    """
+    load `(X,y)`, `K` or `normal npz` format from a .npz file
+    generally, this is wrapper for numpy.load() function
+
+    Parameters
+    ==========
+        path: str
+            path to the .npz file
+        fields: list
+            fields to load
+    
+    Returns
+    =======
+        1. (X, y)
+        2. K
+        3. numpy data
+    """
+    data = np.load(path)
+
+    if "X" in data.files and ( type(fields) == list and "X" in fields or fields == "ALL" ):
+        ## check X
+        X = utils.toDense(data['X'])
+        y = data['y']
+        return (X,y)
+    else:
+        return data
+
+def dump(path, **kwargs):
+    """
+    dump data into a numpy compressed file
+    A wrapper for numpy.savez_compressed() function
+
+    Parameters
+    ==========
+        path:
+            Path to the .npz file
+        kwargs:
+            Arrays to save to the file
+            e.g, dump('test.npz', X=X, y=y)
+    """
+    ## check data
+    # try:        
+    #     X, y = Xy
+    # except ValueError:
+    #     logging.error("check the format in Xy")
+    #     return False
+
+    ## check path
+    dirs = os.path.dirname(path)
+    if dirs and not os.path.exists( dirs ): os.makedirs( dirs )
+
+    ## dump
+    try:
+        logging.debug("dumping X, y to %s" % (path))
+    except NameError:
+        pass
+    np.savez_compressed(path, **kwargs)
+
+
 
 class LoadFile(object):
     """
