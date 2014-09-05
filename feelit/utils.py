@@ -112,6 +112,10 @@ def getArrayN(array):
         n = array.shape[0]
     return n
 
+def toDense(a):
+    densed_a = a if a.shape else a.all().toarray()
+    return densed_a
+
 def isSparse(array):
     """
     Detect if input is a sparse array or not
