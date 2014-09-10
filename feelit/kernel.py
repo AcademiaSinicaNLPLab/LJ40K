@@ -15,14 +15,13 @@ from feelit import utils
 import numpy as np
 from math import exp
 
-
 class RBF(object):
     """
     build RBF kernel matrix from the input feature vectors
 
     usage:
         >> from feelit.kernel import RBF
-        >> rbf = RBF()
+        >> rbf = RBF(verbose=True)
         >> rbf.load(path="data/text_TFIDF.Xy.npz")
         
     maybe do random sampling before build:
@@ -31,7 +30,7 @@ class RBF(object):
         >> rbf.X, rbf.y = RandomSample((rbf.X, rbf.y), index_file="data/idxs.pkl") # use certain index file
 
     build the matrix K
-        >> >> rbf.build()
+        >> rbf.build()
     """
     def __init__(self, **kwargs):
         """
@@ -67,7 +66,7 @@ class RBF(object):
         self.X = data['X'] if data['X'].shape else data['X'].all().toarray()
         self.y = data['y']
 
-    def _squared_Euclidean_distance(self, p, q):
+    def _squared_Euclidean_distance(p, q):
         return sum([ (_p-_q)*(_p-_q) for _p, _q in zip(p, q)])
 
     def _rbf_kernel_function(self, v1, v2, gamma="default"):
@@ -77,7 +76,7 @@ class RBF(object):
 
         sed = self._squared_Euclidean_distance(v1, v2)
         k_v1_v2 = exp(-1.0*gamma*sed)
-        return k_v1_v2 
+        return k_v1_v2
 
     def build(self, X=None):
         """
@@ -99,11 +98,16 @@ class RBF(object):
         X : <32000x15456>, which contains 32,000 documents. Each doc contains 15,456 features
         """ 
 
-        if X: self.X = X
+        if X != None: 
+            self.X = X
 
         _num_of_samples = len(self.X)
+        logging.debug( 'num of samples: %d' % (_num_of_samples) )
 
+        logging.debug( 'build zero matrix' )
         self.K = np.zeros((_num_of_samples, _num_of_samples))
+
+
         for i in range(_num_of_samples):
             self.K[i][i] = 1.0
             for j in range(i+1, _num_of_samples):
