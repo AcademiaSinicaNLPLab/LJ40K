@@ -66,7 +66,7 @@ class RBF(object):
         self.X = data['X'] if data['X'].shape else data['X'].all().toarray()
         self.y = data['y']
 
-    def _squared_Euclidean_distance(p, q):
+    def _squared_Euclidean_distance(self, p, q):
         return sum([ (_p-_q)*(_p-_q) for _p, _q in zip(p, q)])
 
     def _rbf_kernel_function(self, v1, v2, gamma="default"):
@@ -77,6 +77,13 @@ class RBF(object):
         sed = self._squared_Euclidean_distance(v1, v2)
         k_v1_v2 = exp(-1.0*gamma*sed)
         return k_v1_v2
+
+    def _test_build(self):
+        ## build a 10x10 matrix for debug
+        self.Ksmall = np.zeros((10, 10))
+        for i in range(10):
+            for j in range(10):
+                self.Ksmall[i][j] = self.Ksmall[j][i] = self._rbf_kernel_function(self.X[i], self.X[j], gamma="default")
 
     def build(self, X=None):
         """
@@ -112,5 +119,4 @@ class RBF(object):
             self.K[i][i] = 1.0
             for j in range(i+1, _num_of_samples):
                 self.K[i][j] = self.K[j][i] = self._rbf_kernel_function(self.X[i], self.X[j], gamma="default")
-
 
