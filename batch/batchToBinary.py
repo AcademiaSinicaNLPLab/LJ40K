@@ -61,36 +61,44 @@ def load(path="random_idx.pkl"):
 if __name__ == '__main__':
     
     # feature_name = "image_rgba_gist"
-    feature_name = "text_TFIDF"
-    data = np.load("../data/"+feature_name+".Xy.npz")
-    
-    X = utils.toDense( data['X'] )
-    # data['X']:
-    ## array(<32000x2732 sparse matrix of type '<type 'numpy.float64'>'
-    ##     with 914162 stored elements in Compressed Sparse Row format>, dtype=object)
-
-    y = data['y']
-    # array([u'accomplished', u'accomplished', u'accomplished', ..., u'tired',
-    #        u'tired', u'tired'],
-    #       dtype='<U13')
+    if len(sys.argv) > 1:
+        feature_names = sys.argv[1:]
+    else:
+        feature_names = ["image_rgba_phog"]
 
     ## generate
     # G = gen_idx(y)
-
-    ## load from existed G
+    ## load existed
     G = load(path="random_idx.pkl")
 
-    for i_label, label in enumerate(G):
-        print 'processing %d/%d' % ( i_label+1, len(G) )
-        print ' > subsampling', label
-        idxs = set([i for i,l in G[label]])
-        _X, _y = subsample(X, y, idxs)
+    for feature_name in feature_names:
 
-        _y = relabel(_y, label)
+        print '>>> processing', feature_name
 
-        path = "../data/"+feature_name+"/Xy/"+feature_name+".Xy."+label+".npz"
-        print ' > dumping', path
-        dump(path, X=_X, y=_y)
+        data = np.load("../data/"+feature_name+".Xy.npz")
+    
+        X = utils.toDense( data['X'] )
+        # data['X']:
+        ## array(<32000x2732 sparse matrix of type '<type 'numpy.float64'>'
+        ##     with 914162 stored elements in Compressed Sparse Row format>, dtype=object)
+
+        y = data['y']
+        # array([u'accomplished', u'accomplished', u'accomplished', ..., u'tired',
+        #        u'tired', u'tired'],
+        #       dtype='<U13')
+
+
+        for i_label, label in enumerate(G):
+            print 'processing %d/%d' % ( i_label+1, len(G) )
+            print ' > subsampling', label
+            idxs = set([i for i,l in G[label]])
+            _X, _y = subsample(X, y, idxs)
+
+            _y = relabel(_y, label)
+
+            path = "../data/"+feature_name+"/Xy/"+feature_name+".Xy."+label+".npz"
+            print ' > dumping', path
+            dump(path, X=_X, y=_y)
 
 
 

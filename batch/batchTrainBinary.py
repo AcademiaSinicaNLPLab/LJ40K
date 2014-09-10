@@ -17,13 +17,13 @@ if __name__ == '__main__':
     print 'will process', len(emotions), 'emotions: ', emotions, 'go?', raw_input()
 
 
-    feature_name = "text_TFIDF"
+    feature_name = "image_rgba_phog"
 
-    out_root = "../results/text_TFIDF_binary"
+    out_root = "../results/"+feature_name+"_binary"
 
     
 
-    for emotion in emotions[:5]:
+    for emotion in emotions:
 
         ## check if existed
         if os.path.exists(os.path.join(out_root,feature_name+"."+emotion)):
