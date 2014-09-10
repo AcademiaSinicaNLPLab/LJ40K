@@ -516,7 +516,7 @@ class Learning(object):
         >> from feelit.features import Learning
         >> l = Learning(verbose=True)
         >> l.load(path="data/DepPairs_LSA512+TFIDF_LSA512+keyword_LSA512+rgba_gist+rgba_phog.Xy.npz")
-        >> l.kFold()
+        >> l.kFold(classifier="SVM")
         >> l.save(root="results")
     """
     def __init__(self, X=None, y=None, **kwargs):
@@ -582,11 +582,18 @@ class Learning(object):
     def kFold(self, **kwargs):
 
         from sklearn import svm
+        from sklearn.linear_model import SGDClassifier
+
         from sklearn.cross_validation import KFold
         from sklearn.preprocessing import StandardScaler
 
-        ## amend dense matrix: replace NaN and None with float values
-        self.check_and_amend()
+        amend = False if "amend" not in kwargs else kwargs["amend"]
+        if amend:
+            ## amend dense matrix: replace NaN and None with float values
+            self.check_and_amend()
+        else:
+            logging.debug("skip the amending process")
+
 
         # config n-fold verification
         n_folds = 10 if 'n_folds' not in kwargs else kwargs['n_folds']
@@ -604,33 +611,52 @@ class Learning(object):
         with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
         with_std = True if 'with_std' not in kwargs else kwargs['with_std']
 
+
+
+        ## setup a classifier
+        classifier = "SVM" if "classifier" not in kwargs else kwargs["classifier"].upper()
+
+        ## setup a svm classifier
+        kernel = "rbf" if 'kernel' not in kwargs else kwargs["kernel"]
+
         # Cannot center sparse matrices, `with_mean` should be set as `False`
         if utils.isSparse(self.X):
             with_mean = False
         
         scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
 
+        logging.debug('training with %s classifier' % (classifier))
+
         for (i, (train_index, test_index)) in enumerate(kf):
+
+            logging.debug("train: %d , test: %d" % (len(train_index), len(test_index)))
 
             logging.info('cross validation round %d' % (i+1))
             X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
 
-            logging.debug("setting scaler")
+
+            logging.debug("scaling")
 
             X_train = scaler.fit_transform(X_train)
             X_test = scaler.fit_transform(X_test)
 
-            logging.debug('training with svm.SVC classifier')
-            clf = svm.SVC()
+            if classifier == "SVM":
+                clf = svm.SVC(kernel=kernel)
+            elif classifier == "SGD":
+                clf = SGDClassifier()
+            else:
+                logging.error("currently only support SVM and SGD classifiers")
+                return False
+            
 
-            logging.debug("training")
+            logging.debug("training (#x: %d, #y: %d)" % (len(X_train), len(y_train)))
             clf.fit(X_train, y_train)
 
             
             score = clf.score(X_test, y_test)
             logging.debug('get score %.3f' % (score))
 
-            logging.debug("predicting")
+            logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
             result = clf.predict(X_test)
 
             self.kfold_results.append( (i+1, y_test, result) )
@@ -651,7 +677,14 @@ class Learning(object):
 
             out_fn = "%s.fold-%d.result" % (self.feature_name, ith)
 
-            with open(os.path.join(root, subfolder, out_fn), 'w') as fw:
+            ## deal with IOError
+            ## IOError: [Errno 2] No such file or directory: '../results/text_TFIDF_binary/text_TFIDF.accomplished/text_TFIDF.accomplished.fold-1.result'
+            out_path = os.path.join(root, subfolder, out_fn)
+            out_dir = os.path.dirname(out_path)
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir)
+
+            with open(out_path, 'w') as fw:
 
                 fw.write( ','.join( map(lambda x:str(x), y_test) ) )
                 fw.write('\n')
