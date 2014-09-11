@@ -23,7 +23,9 @@ if __name__ == '__main__':
     
     print 'will process', len(emotions), 'emotions: ', emotions, 'go?', raw_input()
 
-    out_root = "../results/"+feature_name+"_binary"
+    kernel = "linear"
+
+    out_root = "../results/"+feature_name+".binary."+kernel
     
 
     for emotion in emotions:
@@ -42,18 +44,8 @@ if __name__ == '__main__':
         l.load(path=src_path)
 
         print '>> training'
-        l.kFold(classifier="SVM", kernel="linear")
+        l.kFold(classifier="SVM", kernel=kernel)
 
         print '>> saving'
         l.save(root=out_root)
-
-
-
-
-
-
-
-
-
-
          
