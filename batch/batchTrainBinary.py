@@ -8,19 +8,22 @@ from feelit import utils
 emotions = utils.LJ40K
 
 if __name__ == '__main__':
-    
-    if len(sys.argv) == 3:
-        _from = int(sys.argv[1])
-        _to = int(sys.argv[2])
-        emotions = emotions[_from:_to]
 
+    if len(sys.argv) >= 2:
+    
+        feature_name = sys.argv[1]
+        
+        if len(sys.argv) == 4:
+            _from = int(sys.argv[2])
+            _to = int(sys.argv[3])
+            emotions = emotions[_from:_to]
+    else:
+        print 'usage: python %s <feature_name> [from, to]' % (__file__)
+        exit()
+    
     print 'will process', len(emotions), 'emotions: ', emotions, 'go?', raw_input()
 
-
-    feature_name = "image_rgba_phog"
-
     out_root = "../results/"+feature_name+"_binary"
-
     
 
     for emotion in emotions:

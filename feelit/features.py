@@ -88,7 +88,7 @@ class LoadFile(object):
 
         ## amend value, ie., None -> 0, "NaN" -> 0
         >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1", data_range=800, amend=True)
-        
+
         >> lf.dump(path="data/image_rgb_gist.Xy", ext=".npz")
     """
     def __init__(self, **kwargs):
@@ -527,7 +527,7 @@ class Learning(object):
     usage:
         >> from feelit.features import Learning
         >> l = Learning(verbose=True)
-        >> l.load(path="data/DepPairs_LSA512+TFIDF_LSA512+keyword_LSA512+rgba_gist+rgba_phog.Xy.npz")
+        >> l.load(path="data/image_rgba_gist.Xy.npz")
         >> l.kFold(classifier="SVM")
         >> l.save(root="results")
     """
