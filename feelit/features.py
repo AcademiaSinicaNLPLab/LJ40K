@@ -635,9 +635,15 @@ class Learning(object):
         if utils.isSparse(self.X):
             with_mean = False
         
+
         scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
 
         logging.debug('training with %s classifier' % (classifier))
+
+
+        ## determine whether using predict or predict_proba
+        prob = False if 'prob' not in kwargs else kwargs["prob"]
+
 
         for (i, (train_index, test_index)) in enumerate(kf):
 
@@ -653,9 +659,12 @@ class Learning(object):
             X_test = scaler.fit_transform(X_test)
 
             if classifier == "SVM":
-                clf = svm.SVC(kernel=kernel)
+                clf = svm.SVC(kernel=kernel, probability=prob)
             elif classifier == "SGD":
-                clf = SGDClassifier()
+                if prob:
+                    clf = SGDClassifier(loss="log")
+                else:
+                    clf = SGDClassifier()
             else:
                 logging.error("currently only support SVM and SGD classifiers")
                 return False
@@ -668,10 +677,15 @@ class Learning(object):
             score = clf.score(X_test, y_test)
             logging.debug('get score %.3f' % (score))
 
-            logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
-            result = clf.predict(X_test)
+            
+            if prob:
+                logging.debug("predicting (#x: %d, #y: %d) with prob" % (len(X_test), len(y_test)))
+                result = clf.predict_proba(X_test)
+            else:
+                logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
+                result = clf.predict(X_test)
 
-            self.kfold_results.append( (i+1, y_test, result, score) )
+            self.kfold_results.append( (i+1, y_test, result, score, clf.classes_) )
 
     def save(self, root=".", feature_name="", ext=".npz"):
         if not self.feature_name:
@@ -681,18 +695,19 @@ class Learning(object):
                 logging.warn("speficy the feature_name for the file to be saved")
                 return False
 
-        tests, predicts, scores = [], [], []
-        for i, y_test, result, score in self.kfold_results:
+        tests, predicts, scores, classes = [], [], [], []
+        for i, y_test, result, score, cla in self.kfold_results:
             tests.append( y_test )
             predicts.append( result )
             scores.append( score )
+            classes.append( cla )
 
 
         out_path = os.path.join(root, self.feature_name+".res"+ext )
-        
+
         if not os.path.exists(os.path.dirname(out_path)): os.makedirs(os.path.dirname(out_path))
 
-        np.savez_compressed(out_path, tests=tests, predicts=predicts, scores=scores)
+        np.savez_compressed(out_path, tests=tests, predicts=predicts, scores=scores, classes=classes)
 
 
     def save_files(self, root=".", feature_name=""):

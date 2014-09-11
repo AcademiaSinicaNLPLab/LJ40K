@@ -12,11 +12,12 @@ if __name__ == '__main__':
     classifier = "SVM"
     kernel = "rbf"
     classtype = "binary"
+    prob = True
 
-    key = ["classifier", "kernel", "classtype"]
-    val = [classifier, kernel, classtype]
+    key = ["classifier", "kernel", "classtype", "prob"]
+    val = [classifier, kernel, classtype, prob]
 
-    arg = '_'.join(map(lambda a: '='.join(a), sorted(zip(key, val), key=lambda x:x[0])))
+    arg = '_'.join(map(lambda a: '='.join([a[0], str(a[1])]), sorted(zip(key, val), key=lambda x:x[0])))
 
 
     print zip(key, val)
@@ -57,7 +58,7 @@ if __name__ == '__main__':
         l.load(path=src_path)
 
         print '>> training'
-        l.kFold(classifier=classifier, kernel=kernel)
+        l.kFold(classifier=classifier, kernel=kernel, prob=prob)
 
         print '>> saving'
         l.save(root=out_root)
