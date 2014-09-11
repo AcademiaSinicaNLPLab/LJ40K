@@ -671,9 +671,31 @@ class Learning(object):
             logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
             result = clf.predict(X_test)
 
-            self.kfold_results.append( (i+1, y_test, result) )
+            self.kfold_results.append( (i+1, y_test, result, score) )
 
-    def save(self, root=".", feature_name=""):
+    def save(self, root=".", feature_name="", ext=".npz"):
+        if not self.feature_name:
+            if feature_name:
+                self.feature_name = feature_name
+            else:
+                logging.warn("speficy the feature_name for the file to be saved")
+                return False
+
+        tests, predicts, scores = [], [], []
+        for i, y_test, result, score in self.kfold_results:
+            tests.append( y_test )
+            predicts.append( result )
+            scores.append( score )
+
+
+        out_path = os.path.join(root, self.feature_name+".res"+ext )
+        
+        if not os.path.exists(os.path.dirname(out_path)): os.makedirs(os.path.dirname(out_path))
+
+        np.savez_compressed(out_path, tests=tests, predicts=predicts, scores=scores)
+
+
+    def save_files(self, root=".", feature_name=""):
         """
         """
         if not self.feature_name:
@@ -685,7 +707,7 @@ class Learning(object):
 
         subfolder = self.feature_name
 
-        for ith, y_test, result in self.kfold_results:
+        for ith, y_test, result, score in self.kfold_results:
 
             out_fn = "%s.fold-%d.result" % (self.feature_name, ith)
 

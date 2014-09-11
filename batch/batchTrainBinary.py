@@ -9,6 +9,22 @@ emotions = utils.LJ40K
 
 if __name__ == '__main__':
 
+    classifier = "SVM"
+    kernel = "rbf"
+    classtype = "binary"
+
+    key = ["classifier", "kernel", "classtype"]
+    val = [classifier, kernel, classtype]
+
+    arg = '_'.join(map(lambda a: '='.join(a), sorted(zip(key, val), key=lambda x:x[0])))
+
+
+    print zip(key, val)
+    
+    ## output root folder
+    ## <feature_name>.classifier=<classifier>_kernel=<kernel>_classtype=<classtype>
+    ## image_rgb_gist.classifier=SGD_kernel=linear_classtype=binary
+
     if len(sys.argv) >= 2:
     
         feature_name = sys.argv[1]
@@ -22,11 +38,8 @@ if __name__ == '__main__':
         exit()
     
     print 'will process', len(emotions), 'emotions: ', emotions, 'go?', raw_input()
-
-    kernel = "linear"
-
-    out_root = "../results/"+feature_name+".binary."+kernel
     
+    out_root = os.path.join("../results/", feature_name+'.'+arg)
 
     for emotion in emotions:
 
@@ -44,7 +57,7 @@ if __name__ == '__main__':
         l.load(path=src_path)
 
         print '>> training'
-        l.kFold(classifier="SVM", kernel=kernel)
+        l.kFold(classifier=classifier, kernel=kernel)
 
         print '>> saving'
         l.save(root=out_root)
