@@ -7,6 +7,37 @@ def connect_mongo(mongo_addr='doraemon.iis.sinica.edu.tw', db_name='LJ40K'):
     db = pymongo.Connection(mongo_addr)[db_name]
     return db
 
+def all_to_float(two_d_array, mapping={None: 0.0, "NaN": 0.0, "null": 0.0}, extra={}):
+    """
+    Parameters
+    ==========
+    two_d_array: numpy.array() with shape(_, _) or <list of list>
+
+    mapping: dict
+        default mapping table
+
+    extra: dict
+        extra mapping options
+
+    Returns
+    =======
+    nothing, this is an in-place function
+
+    """
+    mapping.update(extra)
+    for rid in xrange(len(two_d_array)):
+        for cid in xrange(len(two_d_array[rid])):
+            if type(two_d_array[rid][cid]) not in (float, int):
+                if two_d_array[rid][cid] in mapping:
+                    two_d_array[rid][cid] = mapping[ two_d_array[rid][cid] ]
+                else:
+                    print "unknown mapping of type: ", two_d_array[rid][cid], '(type:', type(two_d_array[rid][cid]), ')'
+                    raise TypeError
+            else:
+                pass
+
+
+
 def toNumber(string, **kwargs):
     """
     Convert a string to number
@@ -19,7 +50,7 @@ def toNumber(string, **kwargs):
             "auto"/True/False, set auto to detect "." in the input string automatically
     """
 
-    NaN = -1 if 'NaN' not in kwargs else kwargs['NaN']
+    NaN = 0 if 'NaN' not in kwargs else kwargs['NaN']
     toFloat = "auto" if 'toFloat' not in kwargs else kwargs['toFloat']
 
     string = string.strip()

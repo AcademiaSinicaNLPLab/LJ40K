@@ -74,15 +74,21 @@ def dump(path, **kwargs):
         pass
     np.savez_compressed(path, **kwargs)
 
-
-
 class LoadFile(object):
     """
     Fetch features from files
     usage:
         >> from feelit.features import LoadFile
         >> lf = LoadFile(verbose=True)
+        ## normal use: load all data
+        >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1")
+
+        ## specify the data_range
         >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1", data_range=800)
+
+        ## amend value, ie., None -> 0, "NaN" -> 0
+        >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1", data_range=800, amend=True)
+        
         >> lf.dump(path="data/image_rgb_gist.Xy", ext=".npz")
     """
     def __init__(self, **kwargs):
@@ -118,6 +124,12 @@ class LoadFile(object):
         ## load csv files to <float> type
         lines = utils.load_csv(path, **kwargs)
 
+        ## replace None -> 0, -1 -> 0, "NaN" -> 0
+        if "amend" in kwargs and kwargs["amend"] == True:
+            logging.debug('amending %s' % (path))
+            extra = {-1: 0, None: 0} if "extra" not in kwargs else kwargs["extra"]
+            utils.all_to_float(lines, extra=extra)
+
         ## to numpy array and transpose
         X = np.array(lines).transpose()
         if type(data_range) == int and data_range < len(X):
@@ -141,7 +153,7 @@ class LoadFile(object):
                 fns.append( fn )
 
         for fn in sorted(fns):
-                self.load( path=os.path.join(root, fn), **kwargs)
+            self.load( path=os.path.join(root, fn), **kwargs)
 
         logging.debug("All loaded. Concatenate Xs and ys")
         self.concatenate()
