@@ -1,4 +1,3 @@
-## split data
 
 import sys
 sys.path.append("../")
@@ -9,11 +8,20 @@ from feelit.features import dump
 
 
 def gen_idx(y):
-    # Return: 
-    # {
-    #     <label>: [positive_ins, negative_ins],
-    #     ...
-    # }
+    """
+    Parameters
+    ==========
+    y: 1-D np.array or list
+        labels in training data
+    
+    Returns
+    ======
+    G: dict
+        {
+            <label>: [positive_ins, negative_ins],
+            ...
+        }
+    """
     from collections import Counter
     import random
 
@@ -22,8 +30,6 @@ def gen_idx(y):
     G = {}
 
     for label in dist:
-        # filter out
-
         possitive_samples, negative_candidates = [], []
         for i, _label in enumerate(y):
             if _label == label:
@@ -48,15 +54,13 @@ def subsample(X, y, idxs):
             _X.append( X[i] )
     return ( np.array(_X), np.array(_y) )
 
-def relabel(y, label):
-    return [label if _y == label else "_"+label for _y in y ]
+def relabel(y, label): return [label if _y == label else "_"+label for _y in y ]
 
 
-def save(G, path="random_idx.pkl"):
-    pickle.dump(G, open(path, "wb"), protocol=2)
+def save(G, path="random_idx.pkl"): pickle.dump(G, open(path, "wb"), protocol=2)
 
-def load(path="random_idx.pkl"):
-    return pickle.load(open(path))
+def load(path="random_idx.pkl"): return pickle.load(open(path))
+
 
 if __name__ == '__main__':
     
@@ -68,6 +72,7 @@ if __name__ == '__main__':
 
     ## generate
     # G = gen_idx(y)
+
     ## load existed
     print 'loading random_idx'
     G = load(path="random_idx.pkl")
@@ -77,35 +82,34 @@ if __name__ == '__main__':
 
         print '>>> processing', feature_name
 
+        ## load text_TFIDF.Xy.test.npz
+        ## load text_TFIDF.Xy.train.npz
+        npz_path = "../data/"+feature_name+".Xy.train.npz"
 
-        npz_path = "../data/"+feature_name+".Xy.npz"
         print ' > loading',npz_path
+
         data = np.load(npz_path)
-    
-        print ' > X to Dense'
-        X = utils.toDense( data['X'] )
+
+        # slice to train/test
+        # print ' > X to Dense'
+        # X = utils.toDense( data['X'] )
+        X = data['X']
         print ' > get X', X.shape
-        # data['X']:
-        #   array(<40000x85304 sparse matrix of type '<type 'numpy.float64'>'
-        #         with 4870484 stored elements in Compressed Sparse Row format>, dtype=object)
 
         y = data['y']
         print ' > get y', y.shape
-        ## data['y']:
-        #   array([u'accomplished', u'accomplished', u'accomplished', ..., u'tired',
-        #            u'tired', u'tired'],
-        #           dtype='<U13')
-
 
         for i_label, label in enumerate(G):
+
             print 'processing %d/%d' % ( i_label+1, len(G) )
             print ' > subsampling', label
-            idxs = set([i for i,l in G[label]])
+
+            idxs = set([i for i,l in G[label] ])
             _X, _y = subsample(X, y, idxs)
 
             _y = relabel(_y, label)
 
-            path = "../train/"+feature_name+"/Xy/"+feature_name+".Xy."+label+".npz"
+            path = "../train/"+feature_name+"/Xy/"+feature_name+".Xy."+label+".train.npz"
             print ' > dumping', path
             dump(path, X=_X, y=_y)
 
