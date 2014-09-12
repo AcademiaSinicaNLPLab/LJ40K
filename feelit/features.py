@@ -80,14 +80,18 @@ class LoadFile(object):
     usage:
         >> from feelit.features import LoadFile
         >> lf = LoadFile(verbose=True)
+
         ## normal use: load all data
         >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1")
 
-        ## specify the data_range
-        >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1", data_range=800)
+        ## specify the data_range [:800]
+        >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1", data_range=(None,800) )
 
         ## amend value, ie., None -> 0, "NaN" -> 0
-        >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1", data_range=800, amend=True)
+        >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1", data_range=(None,800), amend=True)
+
+        ## specify the data_range [-200:] and amend value
+        >> lf.loads(root="/Users/Maxis/projects/emotion-detection-modules/dev/image/emotion_imgs_threshold_1x1_rbg_out_amend/out_f1", data_range=(-200,None), amend=True)
 
         >> lf.dump(path="data/image_rgb_gist.Xy", ext=".npz")
     """
@@ -134,6 +138,20 @@ class LoadFile(object):
         X = np.array(lines).transpose()
         if type(data_range) == int and data_range < len(X):
             X = X[:data_range]
+
+        elif type(data_range) == tuple or type(data_range) == list:
+
+            _begin = data_range[0]
+            _end = data_range[1]
+
+            if _begin == None and _end == None:
+                raise TypeError("data_range must contain at least one int value")
+
+            elif _begin == None and _end != None:
+                X = X[:_end]
+            elif _begin != None and _end == None:
+                X = X[_begin:]
+
 
         ## assign label to this loaded data
         if label == "auto":
@@ -182,7 +200,12 @@ class FetchMongo(object):
     usage:
         >> from feelit.features import FetchMongo
         >> fm = FetchMongo(verbose=True)
+
+        ## set data_range to 800, i.e., [:800]
         >> fm.fetch_transform('TFIDF', '53a1921a3681df411cdf9f38', data_range=800)
+
+        ## set data_range > 800, i.e., [800:]
+        >> fm.fetch_transform('TFIDF', '53a1921a3681df411cdf9f38', data_range=">800")
         >> fm.dump(path="data/TFIDF.Xy", ext=".npz")
     """
     def __init__(self, **kwargs):
@@ -295,6 +318,24 @@ class FetchMongo(object):
 
         logging.info("fetching documents from %s" % (collection_name))
         
+
+        ## amend data_range
+        ## ">800" --> 
+        raw_data_range = data_range
+        
+        range_type = None
+        if type(data_range) == int:
+            range_type = "lt"
+        elif raw_data_range == "all":
+            range_type = "all"
+        elif type(raw_data_range) == str and ">" in raw_data_range:
+            range_type = "gte"
+            data_range = int(data_range.replace(">", ""))
+        else:
+            logging.error("check the data_range format")
+            return False
+
+
         for i, mdoc in enumerate(cur):
 
             if 'feature' not in mdoc:
@@ -303,10 +344,25 @@ class FetchMongo(object):
 
             ## filter by data_range
             ## if data_range=800, then 0-799 will be kept
-            if type(data_range) == int:
+            if range_type == "lt":
+                ## e.g., data_range=800
                 if mdoc['ldocID'] >= data_range:
+                    logging.debug('mdoc %d skipped' % ( i+1 ))
                     continue
 
+            elif range_type == "gte":
+                ## e.g., data_range=">800"
+                if mdoc['ldocID'] < data_range:
+                    logging.debug('mdoc %d skipped' % ( i+1 ))
+                    continue
+
+            elif range_type == "all":
+                pass
+
+            else:
+                logging.error("unknown range_type")
+                return False
+            
             ## get (and tranform) features into dictionary
             if type(mdoc['feature']) == dict:
                 feature_dict = dict( mdoc['feature'] )
@@ -528,9 +584,24 @@ class Learning(object):
         >> from feelit.features import Learning
         >> l = Learning(verbose=True)
         >> l.load(path="data/image_rgba_gist.Xy.npz")
+
+        ## normal training
+        >> l.train(classifier="SVM", kernel="rbf", prob=True)
+
+        ## save model
+        >> l.save_model()
+
+        ## normal testing
+        >> l.test()
+
+        ## n-fold
         >> l.kFold(classifier="SVM")
+
+        ## save n-fold result
         >> l.save(root="results")
     """
+
+
     def __init__(self, X=None, y=None, **kwargs):
 
         loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
@@ -591,13 +662,64 @@ class Learning(object):
             logging.debug("no X to be checked and amended")
             return False
         
-    def kFold(self, **kwargs):
-
+    def train(self, **kwargs):
         from sklearn import svm
         from sklearn.linear_model import SGDClassifier
+        from sklearn.preprocessing import StandardScaler        
+        
+        with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
+        with_std = True if 'with_std' not in kwargs else kwargs['with_std']
+        # Cannot center sparse matrices, `with_mean` should be set as `False`
+        if utils.isSparse(self.X):
+            with_mean = False
+        
 
-        from sklearn.cross_validation import KFold
+        ## setup a classifier
+        classifier = "SVM" if "classifier" not in kwargs else kwargs["classifier"].upper()
+        ## setup a svm classifier
+        kernel = "rbf" if 'kernel' not in kwargs else kwargs["kernel"]
+        ## determine whether using predict or predict_proba
+        prob = False if 'prob' not in kwargs else kwargs["prob"]
+
+        logging.debug("setup a StandardScaler")
+        scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
+        X_train = scaler.fit_transform(self.X)
+
+        if classifier == "SVM":
+            self.clf = svm.SVC(kernel=kernel, probability=prob)
+        elif classifier == "SGD":
+            if prob:
+                self.clf = SGDClassifier(loss="log")
+            else:
+                self.clf = SGDClassifier()
+        else:
+            logging.error("currently only support SVM and SGD classifiers")
+            return False
+
+        logging.debug('training with %s classifier' % (classifier))
+        self.clf.fit(X_train, self.y)
+
+    def save_model(self, root=".", feature_name="", ext=".model"):
+        import pickle
+
+        if not self.feature_name:
+            if feature_name:
+                self.feature_name = feature_name
+            else:
+                logging.warn("speficy the feature_name for the file to be saved")
+                return False
+        out_path = os.path.join(root, self.feature_name+".model" )
+        out_dir = os.path.dirname(out_path)
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+        pickle.dump(self.clf, open(out_path, "wb"), protocol=2)
+        logging.info("dump model to %s" %(out_path))
+
+    def kFold(self, **kwargs):
+        from sklearn import svm
+        from sklearn.linear_model import SGDClassifier
         from sklearn.preprocessing import StandardScaler
+        from sklearn.cross_validation import KFold
 
         amend = False if "amend" not in kwargs else kwargs["amend"]
         if amend:
@@ -605,7 +727,6 @@ class Learning(object):
             self.check_and_amend()
         else:
             logging.debug("skip the amending process")
-
 
         # config n-fold verification
         n_folds = 10 if 'n_folds' not in kwargs else kwargs['n_folds']
@@ -622,8 +743,6 @@ class Learning(object):
         logging.debug("setup a StandardScaler")
         with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
         with_std = True if 'with_std' not in kwargs else kwargs['with_std']
-
-
 
         ## setup a classifier
         classifier = "SVM" if "classifier" not in kwargs else kwargs["classifier"].upper()

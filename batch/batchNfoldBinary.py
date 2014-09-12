@@ -40,7 +40,7 @@ if __name__ == '__main__':
     
     print 'will process', len(emotions), 'emotions: ', emotions, 'go?', raw_input()
     
-    out_root = os.path.join("../models/", feature_name+'.'+arg+".models")
+    out_root = os.path.join("../results/", feature_name+'.'+arg+".kFold")
 
     for emotion in emotions:
 
@@ -58,8 +58,8 @@ if __name__ == '__main__':
         l.load(path=src_path)
 
         print '>> training'
-        l.train(classifier=classifier, kernel=kernel, prob=prob)
+        l.kFold(classifier=classifier, kernel=kernel, prob=prob)
 
         print '>> saving'
-        l.save_model(root=out_root)
+        l.save(root=out_root)
          

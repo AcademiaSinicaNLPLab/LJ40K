@@ -1,4 +1,6 @@
 *.pyc
+test
+models
 data
 results
 tmp

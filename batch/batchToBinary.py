@@ -78,14 +78,17 @@ if __name__ == '__main__':
         data = np.load("../data/"+feature_name+".Xy.npz")
     
         X = utils.toDense( data['X'] )
+        X_train, X_test = X[:800], X[800:]
         # data['X']:
-        ## array(<32000x2732 sparse matrix of type '<type 'numpy.float64'>'
-        ##     with 914162 stored elements in Compressed Sparse Row format>, dtype=object)
+        #   array(<40000x85304 sparse matrix of type '<type 'numpy.float64'>'
+        #         with 4870484 stored elements in Compressed Sparse Row format>, dtype=object)
 
         y = data['y']
-        # array([u'accomplished', u'accomplished', u'accomplished', ..., u'tired',
-        #        u'tired', u'tired'],
-        #       dtype='<U13')
+        y_train, y_test = y[:800], y[800:]
+        ## data['y']:
+        #   array([u'accomplished', u'accomplished', u'accomplished', ..., u'tired',
+        #            u'tired', u'tired'],
+        #           dtype='<U13')
 
 
         for i_label, label in enumerate(G):
@@ -96,7 +99,7 @@ if __name__ == '__main__':
 
             _y = relabel(_y, label)
 
-            path = "../data/"+feature_name+"/Xy/"+feature_name+".Xy."+label+".npz"
+            path = "../test/"+feature_name+"/Xy/"+feature_name+".Xy."+label+".npz"
             print ' > dumping', path
             dump(path, X=_X, y=_y)
 
