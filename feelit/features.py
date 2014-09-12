@@ -202,10 +202,10 @@ class FetchMongo(object):
         >> fm = FetchMongo(verbose=True)
 
         ## set data_range to 800, i.e., [:800]
-        >> fm.fetch_transform('TFIDF', '53a1921a3681df411cdf9f38', data_range=800)
+        >> fm.fetch_transform('TFIDF', '54129c359503bb27ce851ac4', data_range=800)
 
         ## set data_range > 800, i.e., [800:]
-        >> fm.fetch_transform('TFIDF', '53a1921a3681df411cdf9f38', data_range=">800")
+        >> fm.fetch_transform('TFIDF', '54129c359503bb27ce851ac4', data_range=">800")
         >> fm.dump(path="data/TFIDF.Xy", ext=".npz")
     """
     def __init__(self, **kwargs):
@@ -261,7 +261,7 @@ class FetchMongo(object):
         Load all added features from mongodb
         >> Parameters: 
             feature_name    : e.g., "TFIDF", "pattern_emotion", "keyword" ... etc.
-            setting_id      : <str: mongo_ObjectId>, e.g., "53a1921a3681df411cdf9f38"
+            setting_id      : <str: mongo_ObjectId>, e.g., "54129c359503bb27ce851ac4"
                               further version will support "all" / "first" / "random" / <str: mongo_ObjectId> 
             collection_name : "auto"/<str>, e.g. "features.TFIDF"
             label_name      : the field storing the target label in mongo, e.g., "emotion" or "emoID"
@@ -349,16 +349,13 @@ class FetchMongo(object):
                 if mdoc['ldocID'] >= data_range:
                     logging.debug('mdoc %d skipped' % ( i+1 ))
                     continue
-
             elif range_type == "gte":
                 ## e.g., data_range=">800"
                 if mdoc['ldocID'] < data_range:
                     logging.debug('mdoc %d skipped' % ( i+1 ))
                     continue
-
             elif range_type == "all":
                 pass
-
             else:
                 logging.error("unknown range_type")
                 return False
@@ -366,12 +363,13 @@ class FetchMongo(object):
             ## get (and tranform) features into dictionary
             if type(mdoc['feature']) == dict:
                 feature_dict = dict( mdoc['feature'] )
-
             elif type(mdoc['feature']) == list:
                 feature_dict = { f[0]:f[1] for f in mdoc['feature'] }
-
             else:
                 raise TypeError('make sure the feature format is either <dict> or <list> in mongodb')
+
+            ## reform the feature dictionary by setting up threshoukd
+            feature_dict
 
             label = mdoc[label_name]
 
@@ -585,8 +583,10 @@ class Learning(object):
         >> l = Learning(verbose=True)
         >> l.load(path="data/image_rgba_gist.Xy.npz")
 
+        >> to_delete = l.slice(each_class=">800")
+
         ## normal training
-        >> l.train(classifier="SVM", kernel="rbf", prob=True)
+        >> l.train(classifier="SVM", delete=to_delete, kernel="rbf", prob=True)
 
         ## save model
         >> l.save_model()
@@ -619,6 +619,17 @@ class Learning(object):
         self.y = data['y']
         self.feature_name = path.split('/')[-1].replace('.Xy','').split('.npz')[0]
         self.fn = self.feature_name
+
+        ## build global idx --> local idx mapping
+        lid, prev = 0, self.y[0]
+        self.idx_map = {}
+        for i,current in enumerate(self.y):
+            if prev and prev != current:
+                prev = current
+                lid = 0
+            self.idx_map[i] = lid
+            lid += 1
+
 
     def nFold(self, **kwargs):
         self.KFold(**kwargs)
@@ -661,18 +672,27 @@ class Learning(object):
         else:
             logging.debug("no X to be checked and amended")
             return False
-        
+  
+    def slice(self, each_class):
+
+        if "<" in each_class:
+            th = int(each_class.replace("<",""))
+            to_delete = [gidx for gidx, lidx in self.idx_map.iteritems() if lidx >= th]
+        elif ">" in each_class: # e.g., >800, including 800
+            th = int(each_class.replace(">",""))
+            to_delete = [gidx for gidx, lidx in self.idx_map.iteritems() if lidx < th]
+        else:
+            logging.error('''usage: e.g., l.slice(each_class=">800")''')
+            return False
+
+        return to_delete        
+        # X_ = np.delete(self.X, to_delete, axis=0)
+        # y_ = np.delete(self.y, to_delete, axis=0)
+
     def train(self, **kwargs):
         from sklearn import svm
         from sklearn.linear_model import SGDClassifier
         from sklearn.preprocessing import StandardScaler        
-        
-        with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
-        with_std = True if 'with_std' not in kwargs else kwargs['with_std']
-        # Cannot center sparse matrices, `with_mean` should be set as `False`
-        if utils.isSparse(self.X):
-            with_mean = False
-        
 
         ## setup a classifier
         classifier = "SVM" if "classifier" not in kwargs else kwargs["classifier"].upper()
@@ -681,9 +701,34 @@ class Learning(object):
         ## determine whether using predict or predict_proba
         prob = False if 'prob' not in kwargs else kwargs["prob"]
 
-        logging.debug("setup a StandardScaler")
+
+        ## slice 
+        delete = None if "delete" not in kwargs else kwargs["delete"]
+
+        if delete:
+            X_train = np.delete(utils.toDense(self.X), delete, axis=0)
+            y_train = np.delete(self.y, delete, axis=0)
+        else:
+            X_train = self.X
+            y_train = self.y
+
+        logging.debug("%d samples x %d features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
+        logging.debug("%d samples in y_train" % ( y_train.shape[0] ))
+
+
+        with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
+        with_std = True if 'with_std' not in kwargs else kwargs['with_std']
+
+        # Cannot center sparse matrices, `with_mean` should be set as `False`
+        if utils.isSparse(self.X):
+            with_mean = False
+
         scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
-        X_train = scaler.fit_transform(self.X)
+
+        ## apply scaling on self.X
+        logging.debug("applying a standard scaling")
+        X_train = scaler.fit_transform(X_train)
+
 
         if classifier == "SVM":
             self.clf = svm.SVC(kernel=kernel, probability=prob)
@@ -697,7 +742,7 @@ class Learning(object):
             return False
 
         logging.debug('training with %s classifier' % (classifier))
-        self.clf.fit(X_train, self.y)
+        self.clf.fit(X_train, y_train)
 
     def save_model(self, root=".", feature_name="", ext=".model"):
         import pickle

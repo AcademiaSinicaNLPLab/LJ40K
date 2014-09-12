@@ -69,22 +69,28 @@ if __name__ == '__main__':
     ## generate
     # G = gen_idx(y)
     ## load existed
+    print 'loading random_idx'
     G = load(path="random_idx.pkl")
 
+    
     for feature_name in feature_names:
 
         print '>>> processing', feature_name
 
-        data = np.load("../data/"+feature_name+".Xy.npz")
+
+        npz_path = "../data/"+feature_name+".Xy.npz"
+        print ' > loading',npz_path
+        data = np.load(npz_path)
     
+        print ' > X to Dense'
         X = utils.toDense( data['X'] )
-        X_train, X_test = X[:800], X[800:]
+        print ' > get X', X.shape
         # data['X']:
         #   array(<40000x85304 sparse matrix of type '<type 'numpy.float64'>'
         #         with 4870484 stored elements in Compressed Sparse Row format>, dtype=object)
 
         y = data['y']
-        y_train, y_test = y[:800], y[800:]
+        print ' > get y', y.shape
         ## data['y']:
         #   array([u'accomplished', u'accomplished', u'accomplished', ..., u'tired',
         #            u'tired', u'tired'],
@@ -99,7 +105,7 @@ if __name__ == '__main__':
 
             _y = relabel(_y, label)
 
-            path = "../test/"+feature_name+"/Xy/"+feature_name+".Xy."+label+".npz"
+            path = "../train/"+feature_name+"/Xy/"+feature_name+".Xy."+label+".npz"
             print ' > dumping', path
             dump(path, X=_X, y=_y)
 
