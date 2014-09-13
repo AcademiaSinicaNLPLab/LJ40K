@@ -179,10 +179,12 @@ class LoadFile(object):
     def concatenate(self):
         labels = sorted(self.Xs.keys())
         for label in labels:
+
             if self.X == None: 
                 self.X = np.array(self.Xs[label])
             else:
                 self.X = np.concatenate((self.X, self.Xs[label]), axis=0)
+
             if self.y == None: 
                 self.y = np.array(self.ys[label])
             else:
@@ -507,14 +509,23 @@ class Fusion(object):
             logging.info('feature %s already exists' % (fn))
             return False
         else:
+
+            
             data = np.load(path)
 
             logging.info('loading %s into self.Xs[%s], self.ys[%s]' % (path, fn, fn))
+            ## get shape info
+            X_shape = utils.getShape(data['X'])
+            y_shape = utils.getShape(data['y'])
 
-            logging.debug('loading X...')
+            # logging.debug('loading X in %s...' % (fn))
             self.Xs[fn] = data['X']
-            logging.debug('loading y...')
+
+            logging.debug("%s.X: <%d x %d> Loaded" % (fn, X_shape[0], X_shape[1]))
+
+            # logging.debug('loading y in %s...' % (fn))
             self.ys[fn] = data['y']
+            logging.debug("%s.y: <%d x 1> Loaded" % (fn, y_shape[0]))
 
             return True
 
@@ -557,22 +568,44 @@ class Fusion(object):
         else:
 
             logging.debug('fusing X')
-            self.X = np.concatenate(self.Xs.values(), axis=1)
+
+            ## detect dense or sparse
+            try:
+                ## for dense
+                logging.debug("trying to concatenate matrix using numpy.concatenate")
+                self.X = np.concatenate(self.Xs.values(), axis=1)
+            
+            except ValueError:
+                ## to dense
+                logging.debug("sparse matrix detected. Use scipy.sparse.hstack() instead to enhance performance")
+                from scipy.sparse import hstack
+                candidate = tuple([arr.all() for arr in self.Xs.values()])
+                self.X = hstack(candidate)
+                
             if reduce_memory: del self.Xs
 
             logging.debug('fusing y')
             self.y = self.ys[ self.ys.keys()[0] ]
+
+            ## print infomation
+            logging.info("Yield a fused matrix in shape (%d, %d)" % (self.X.shape[0], self.X.shape[1]))
             return True
 
-    def dump(self, path="auto", ext=".npz"):
+    def dump(self, root="data", path="auto", ext=".npz"):
 
         ## text_DepPairs_LSA512.Xy
         ## '_'.join(x.split('.Xy')[0].split('_')[1:]) --> DepPairs_LSA512
         if path == "auto":
-            path = '+'.join(sorted([ '_'.join(x.split('.Xy')[0].split('_')[1:]) for x in self.Xs.keys() ]))
+            path = '+'.join(sorted([ '_'.join(x.split('.Xy')[0].split('_')[1:]) for x in self.Xs.keys() ])) + ".Xy"
 
         ## amend path
         path = path if not ext or path.endswith(ext) else path+ext
+
+        path = os.path.join(root, path)
+
+        dirs = os.path.dirname(path)
+        if dirs and not os.path.exists( dirs ): os.makedirs( dirs )
+
         logging.debug("dumping X, y to %s" % (path))
         np.savez_compressed(path, X=self.X, y=self.y)
 

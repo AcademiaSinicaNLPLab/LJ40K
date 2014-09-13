@@ -21,8 +21,8 @@ if __name__ == '__main__':
         feature_names = ["image_rgba_phog"]
 
     
-    classifier = "SGD"
-    kernel = "linear"
+    classifier = "SVM"
+    kernel = "rbf"
     classtype = "binary"
     prob = True
 
@@ -72,5 +72,5 @@ if __name__ == '__main__':
             print ' > dumping', label, 'results'
             results_path = os.path.join(results_root, feature_name+"."+label+".results")
 
-            dump(results_path, result=result, classes=clf.classes_)
+            dump(results_path, results=result, classes=clf.classes_, answers=y_test)
             

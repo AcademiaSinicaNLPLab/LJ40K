@@ -1,4 +1,5 @@
 *.pyc
+kFold
 test
 train
 models

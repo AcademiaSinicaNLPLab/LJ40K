@@ -9,8 +9,8 @@ emotions = utils.LJ40K
 
 if __name__ == '__main__':
 
-    classifier = "SVM"
-    kernel = "rbf"
+    classifier = "SGD"
+    kernel = "linear"
     classtype = "binary"
     prob = True
 

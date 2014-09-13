@@ -145,6 +145,9 @@ def getArrayN(array):
         n = array.shape[0]
     return n
 
+def getShape(arr):
+    return arr.shape if arr.shape else arr.any().shape
+
 def toDense(a):
     densed_a = a if a.shape else a.all().toarray()
     return densed_a
