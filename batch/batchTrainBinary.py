@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
         print '>>> processing', emotion
 
-        src_path = "../train/"+feature_name+"/Xy/"+feature_name+".Xy."+emotion+".npz"
+        src_path = "../train/"+feature_name+"/Xy/"+feature_name+".Xy."+emotion+".train.npz"
 
         print '>> loading', src_path
         l = Learning(verbose=True)
