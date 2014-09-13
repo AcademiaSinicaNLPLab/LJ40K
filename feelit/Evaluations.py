@@ -15,6 +15,9 @@ class Evaluation(object):
     """
     from feelit.Evaluations import Evaluation
     ev = Evaluation(verbose=True)
+    ev.loads(root="results/text_TFIDF.classifier=SGD_classtype=binary_kernel=linear_prob=True.results")
+    ev.loads(root="results/image_rgb_gist.classifier=SVM_classtype=binary_kernel=rbf_prob=True.results")
+    ev.eval_all()
     """
     def __init__(self, **kwargs):
         loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
@@ -65,6 +68,10 @@ class Evaluation(object):
             self.ratios[target] = really_is_negative/float(really_is_positive)
             self.PNs[target] = { "TP": TP, "TN": TN, "FP": FP, "FN": FN }
             
+    def eval_all(self):
+        self.scores = { label: self.accuracy(self.PNs[label], self.ratios[label]) for label in self.PNs }
+        self.avg = sum(self.scores.values())/float(len(self.scores))
+
     def accuracy(self, PN, ratio):
         TP = PN['TP']
         TN = PN['TN']/float(ratio)
