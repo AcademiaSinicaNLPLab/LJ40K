@@ -19,7 +19,7 @@ def create_gid_to_lid_map(y):
         lid += 1
     return idx_map
 
-def slice_arr_by_class(each_class):
+def slice_arr_by_class(idx_map, each_class):
     if "<" in each_class:
         th = int(each_class.replace("<",""))
         to_delete = [gidx for gidx, lidx in idx_map.iteritems() if lidx >= th]
@@ -30,7 +30,7 @@ def slice_arr_by_class(each_class):
         return False
     return to_delete  
 
-def resample_by_delete_idx(arr, to_delete, axis): 
+def resample_by_delete_idx(arr, to_delete, axis=0): 
     """
     axis: 0 or 1
         set 0 to delete by row
@@ -82,9 +82,9 @@ if __name__ == '__main__':
         train_path = "../data/"+feature_name+".Xy"+".train"+".npz"
         test_path = "../data/"+feature_name+".Xy"+".test"+".npz"
 
-        print ' > dumping training to', path
+        print ' > dumping training to', train_path
         dump(train_path, X=X_train, y=y_train)
-        print ' > dumping testing to', path
+        print ' > dumping testing to', test_path
         dump(test_path, X=X_test, y=y_test)
 
         print '='*10,'done','='*10
