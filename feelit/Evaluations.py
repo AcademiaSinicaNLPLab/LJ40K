@@ -1,6 +1,7 @@
 
 import logging, os
 import numpy as np
+from feelit.features import dump
 from collections import defaultdict
 
 class LateFusion(object):
@@ -90,7 +91,7 @@ class LateFusion(object):
         """
         data = np.load(path)
 
-        if type(self.answers) != type(None):
+        if type(self.answers) == type(None):
             self.answers = data['answers'] ## save answers of testing data (execute once)
 
         ## check if the order is correct
@@ -136,7 +137,7 @@ class LateFusion(object):
         if len(weights) != type_nums:
             logging.error("make sure the # of weights is the same as # of candidates")
             return False
-        
+
         ### normalize weight
         W = float(sum(weights))
         if W == 0.0:
@@ -150,6 +151,34 @@ class LateFusion(object):
             self.fused[label] = reduce(lambda x,y: x+y, [arr*w for arr, w in zip(candidate_lst, weights)] )
 
         return self.fused
+
+    def save(self, root="results", fusion_name="auto"):
+        """
+        Save fusion results
+
+        Parameters
+        ==========
+        fusion_name: "auto" or str
+            specify a fusion_name is a better way for naming
+            if "auto" is passed in, will automatically concatenate all names of sources
+        """
+        if fusion_name == "auto":
+            raise Exception("this option is not supported yet")
+
+        results_root = os.path.join(root, fusion_name)
+        if not os.path.exists( results_root ): 
+            logging.debug("the folder %s has been created automatically" % (results_root))
+            os.makedirs( results_root )
+
+        for label, results in self.fused.iteritems():
+
+            results_path = os.path.join(results_root, fusion_name+"."+label+".results")
+
+            classes_ = [ '_'+label if _o == 0 else label for _o in self._order]
+
+            logging.debug("dump %s to %s" % (label, results_path))
+            dump(results_path, results=results, classes=classes_, answers=self.answers)
+
 
 
 class Evaluation(object):
@@ -172,7 +201,7 @@ class Evaluation(object):
         ## extract "text_TFIDF.classifier=SGD_classtype=binary_kernel=linear_prob=True"
         self.settings = root.split("/")[-1].split(".results")[0]
 
-        npz_files = filter(lambda x: x.endswith(".npz"), os.listdir(root))
+        npz_files = filter(lambda x: x.endswith(".npz"), os.listdir(root) )
 
         self.PNs = {}
         self.ratios = {}
