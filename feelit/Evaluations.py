@@ -201,7 +201,7 @@ class Evaluation(object):
         ## extract "text_TFIDF.classifier=SGD_classtype=binary_kernel=linear_prob=True"
         self.settings = root.split("/")[-1].split(".results")[0]
 
-        npz_files = filter(lambda x: x.endswith(".npz"), os.listdir(root) )
+        npz_files = filter(lambda x: x.endswith(".npz"), os.listdir(root))
 
         self.PNs = {}
         self.ratios = {}
