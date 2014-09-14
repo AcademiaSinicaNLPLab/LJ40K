@@ -16,20 +16,21 @@ class Evaluation(object):
     from feelit.Evaluations import Evaluation
     ev = Evaluation(verbose=True)
     ev.loads(root="results/text_TFIDF.classifier=SGD_classtype=binary_kernel=linear_prob=True.results")
-    ev.loads(root="results/image_rgb_gist.classifier=SVM_classtype=binary_kernel=rbf_prob=True.results")
     ev.eval_all()
+    ev.save(root="evals")
     """
     def __init__(self, **kwargs):
         loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
         logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)
 
         self.PN = {}
-
-    def stat(self):
-        pass
+        self.feature_name = None
 
     def loads(self, root="results/text_TFIDF.classifier=SGD_classtype=binary_kernel=linear_prob=True.results"):
         
+        ## extract "text_TFIDF.classifier=SGD_classtype=binary_kernel=linear_prob=True"
+        self.settings = root.split("/")[-1].split(".results")[0]
+
         npz_files = filter(lambda x: x.endswith(".npz"), os.listdir(root))
 
         self.PNs = {}
@@ -71,6 +72,14 @@ class Evaluation(object):
     def eval_all(self):
         self.scores = { label: self.accuracy(self.PNs[label], self.ratios[label]) for label in self.PNs }
         self.avg = sum(self.scores.values())/float(len(self.scores))
+
+    def save(self, root="performances"):
+        
+        if not os.path.exists(root): os.makedirs(root)
+        out_path = os.path.join(root, self.settings+'.eval.npz')
+
+        logging.debug("saving evalution scores")
+        np.savez_compressed(out_path, scores=self.scores, avg=self.avg, PNs=self.PNs, ratios=self.ratios, settings=self.settings)
 
     def accuracy(self, PN, ratio):
         TP = PN['TP']
