@@ -8,8 +8,13 @@ from feelit import utils
 emotions = utils.LJ40K
 classifier = "LIBSVM" ## static value, don't modify it
 classtype = "binary"
-kernel = "linear"
+kernel = "rbf"
 prob = True
+
+## params
+gamma = "0.001"
+C = 2
+
 
 if __name__ == '__main__':       
     
@@ -17,9 +22,11 @@ if __name__ == '__main__':
     val = [classifier, kernel, classtype, prob]
 
     arg = '_'.join(map(lambda a: '='.join([a[0], str(a[1])]), sorted(zip(key, val), key=lambda x:x[0])))
+    
+    _g = gamma
+    _c = C
 
-
-    # -t 0 -c 4 -b 1 -q
+    # e.g., -t 0 -c 4 -b 1 -g 0.001 -q
     if kernel == "linear":
         _t = 0
     elif kernel == "polynomial":
@@ -35,8 +42,8 @@ if __name__ == '__main__':
     ## set probability
     _b = 1 if prob else 0
 
-    param = "-t %d -c 4 -b %d -q" % ( _t, _b )
-
+    param = "-t %d -c %d -b %d -g %s -q" % ( _t, _c, _b, _g )
+    print 'svm params:', param
     print zip(key, val)
     
     ## output root folder
