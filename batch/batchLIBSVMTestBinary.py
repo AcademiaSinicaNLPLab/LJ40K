@@ -21,7 +21,7 @@ def usage():
 
 if __name__ == '__main__':
     
-    if len(sys.argv) <= 2:
+    if len(sys.argv) < 2:
         usage()
         exit(-1)
 
@@ -54,7 +54,7 @@ if __name__ == '__main__':
             print ' > loading', label, 'model'
             svm.load_model(model_path)
 
-            if prob: options = "-q"
+            if not prob: options = "-q"
             else: options = "-b 1 -q"
 
             print ' > predicting', label

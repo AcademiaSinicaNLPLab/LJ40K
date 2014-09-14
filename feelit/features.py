@@ -742,14 +742,13 @@ class LIBSVM(object):
         #  if p_val [0.43, 0.57] is labeled as p_label 1, then the order is [ 0, 1 ] --> [_happy, happy]
         order = None
         for i in xrange(len(p_labels)):
-
+            
             p_val, p_label = p_vals[i], p_labels[i]
             
             if p_val[0] == p_val[1]:
                 continue
             else:
                 maxidx = 0 if p_val[0] > p_val[1] else 1
-
                 if maxidx == p_label:
                     order = [0, 1]
                     break
@@ -770,11 +769,13 @@ class LIBSVM(object):
             return False
 
         ## relabel y_test
+        logging.debug("relabeling y_test")
         ny_test = [1 if _y == target else 0 for _y in self.y_test]
 
         ## p_label, p_acc, p_val = svm_predict(y, x, m, '-b 1')
+        logging.debug("predict X_test with options: %s" % (param))
         self.p_labels, self.p_acc, self.p_vals = self.svmutil.svm_predict(y=ny_test, x=self.X_test, m=self.m, options=param)
-
+        
         # build classes order
         ## e.g., 
         #  if p_val [0.53, 0.47] is labeled as p_label 0, then the order is [ 0, 1 ] --> [_happy, happy]
