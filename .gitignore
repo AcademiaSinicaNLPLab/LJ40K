@@ -1,4 +1,5 @@
 *.pyc
+batch/*.pkl
 kFold
 test
 train

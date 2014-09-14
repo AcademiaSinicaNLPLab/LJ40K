@@ -733,6 +733,7 @@ class LIBSVM(object):
         dirs = os.path.dirname(path)
         if dirs and not os.path.exists( dirs ): os.makedirs( dirs )  
               
+        if not m: m = self.m
         self.svmutil.svm_save_model(path, m)
 
     def load_model(self, path):
