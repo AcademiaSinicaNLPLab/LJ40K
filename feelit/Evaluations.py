@@ -180,7 +180,6 @@ class LateFusion(object):
             dump(results_path, results=results, classes=classes_, answers=self.answers)
 
 
-
 class Evaluation(object):
     """
     from feelit.Evaluations import Evaluation
