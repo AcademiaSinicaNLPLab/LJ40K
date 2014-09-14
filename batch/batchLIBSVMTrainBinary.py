@@ -8,12 +8,11 @@ from feelit import utils
 emotions = utils.LJ40K
 classifier = "LIBSVM" ## static value, don't modify it
 classtype = "binary"
+kernel = "linear"
+prob = True
 
-if __name__ == '__main__':
-
-    kernel = "linear"    
-    prob = True
-
+if __name__ == '__main__':       
+    
     key = ["classifier", "kernel", "classtype", "prob"]
     val = [classifier, kernel, classtype, prob]
 

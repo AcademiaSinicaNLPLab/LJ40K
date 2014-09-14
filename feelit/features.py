@@ -667,7 +667,8 @@ class LIBSVM(object):
         self.X_train = data['X'].tolist()
         logging.debug("transforming y to list")
         self.y_train = data['y'].tolist()
-        self.feature_name = path.split('/')[-1].split(".")[0] if self.feature_name == None else self.feature_name
+        self.feature_name = path.split('/')[-1].replace('.Xy','').split('.npz')[0]
+        # self.feature_name = path.split('/')[-1].split(".")[0] if self.feature_name == None else self.feature_name
         logging.debug("got feature_name %s" % (self.feature_name))
 
         if type(self.y_train[0]) not in (int , float):
@@ -679,7 +680,8 @@ class LIBSVM(object):
         self.X_test = data['X'].tolist()
         logging.debug("transforming y to list")
         self.y_test = data['y'].tolist()
-        self.feature_name = path.split('/')[-1].split(".")[0] if self.feature_name == None else self.feature_name
+        self.feature_name = path.split('/')[-1].replace('.Xy','').split('.npz')[0]
+        # self.feature_name = path.split('/')[-1].split(".")[0] if self.feature_name == None else self.feature_name
         logging.debug("got feature_name %s" % (self.feature_name))
 
         if type(self.y_test[0]) not in (int, float):
@@ -732,7 +734,7 @@ class LIBSVM(object):
         path = os.path.join(root, ".".join([self.feature_name, "model"])) if filename == "auto" else os.path.join(root, filename)
         dirs = os.path.dirname(path)
         if dirs and not os.path.exists( dirs ): os.makedirs( dirs )  
-              
+
         if not m: m = self.m
         self.svmutil.svm_save_model(path, m)
 
