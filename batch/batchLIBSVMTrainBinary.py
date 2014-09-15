@@ -1,20 +1,18 @@
-## split data
+
 
 import sys, os
 sys.path.append("../")
 from feelit.features import LIBSVM
 from feelit import utils
-
+classifier = "LIBSVM"   ## static value, don't modify it
+classtype = "binary"    ## static value, don't modify it
 emotions = utils.LJ40K
-classifier = "LIBSVM" ## static value, don't modify it
-classtype = "binary"
+
 kernel = "rbf"
 prob = True
-
 ## params
-gamma = "0.001"
-C = 2
-
+gamma = "default" # str(<float>) or "default"
+C = 2.0
 
 if __name__ == '__main__':       
     
@@ -42,7 +40,11 @@ if __name__ == '__main__':
     ## set probability
     _b = 1 if prob else 0
 
-    param = "-t %d -c %d -b %d -g %s -q" % ( _t, _c, _b, _g )
+    if _g != "default":
+        param = "-t %d -c %d -b %d -g %s -q" % ( _t, _c, _b, _g )
+    else:
+        param = "-t %d -c %d -b %d -q" % ( _t, _c, _b )
+
     print 'svm params:', param
     print zip(key, val)
     

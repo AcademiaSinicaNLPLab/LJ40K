@@ -4,15 +4,19 @@ import sys, os
 sys.path.append("../")
 from feelit.features import Learning
 from feelit import utils
+classtype = "binary"    ## static value, don't modify it
+emotions = utils.LJ40K  
 
-emotions = utils.LJ40K
+classifier = "SVM"
+kernel = "rbf"
+prob = True
+## params
+gamma = "default" # str(<float>) or "default"
+C = 2.0
 
 if __name__ == '__main__':
 
-    classifier = "SGD"
-    kernel = "linear"
-    classtype = "binary"
-    prob = True
+
 
     key = ["classifier", "kernel", "classtype", "prob"]
     val = [classifier, kernel, classtype, prob]
@@ -58,7 +62,10 @@ if __name__ == '__main__':
         l.load(path=src_path)
 
         print '>> training'
-        l.train(classifier=classifier, kernel=kernel, prob=prob)
+        if gamma != "default":
+            l.train(classifier=classifier, kernel=kernel, prob=prob, gamma=float(gamma), C=float(C) )
+        else:
+            l.train(classifier=classifier, kernel=kernel, prob=prob, C=float(C) )
 
         print '>> saving'
         l.save_model(root=out_root)

@@ -5,11 +5,11 @@ sys.path.append("../")
 import numpy as np
 from feelit import utils
 from feelit.features import LIBSVM, dump
-
+classifier = "LIBSVM"   ## static value, don't modify it
+classtype = "binary"    ## static value, don't modify it
 emotions = utils.LJ40K
-classifier = "LIBSVM" ## static value, don't modify it
-classtype = "binary"
-kernel = "linear"
+
+kernel = "rbf"
 prob = True
 
 def usage():

@@ -914,11 +914,6 @@ class Learning(object):
 
         ## setup a classifier
         classifier = "SVM" if "classifier" not in kwargs else kwargs["classifier"].upper()
-        ## setup a svm classifier
-        kernel = "rbf" if 'kernel' not in kwargs else kwargs["kernel"]
-        ## determine whether using predict or predict_proba
-        prob = False if 'prob' not in kwargs else kwargs["prob"]
-
 
         ## slice 
         delete = None if "delete" not in kwargs else kwargs["delete"]
@@ -947,9 +942,19 @@ class Learning(object):
         logging.debug("applying a standard scaling")
         X_train = scaler.fit_transform(X_train)
 
-
+        ## determine whether using predict or predict_proba
+        prob = False if 'prob' not in kwargs else kwargs["prob"]
+        
         if classifier == "SVM":
-            self.clf = svm.SVC(kernel=kernel, probability=prob)
+            ## setup a svm classifier
+            kernel = "rbf" if 'kernel' not in kwargs else kwargs["kernel"]
+            ## cost: default 1
+            C = 1.0 if "C" not in kwargs else kwargs["C"]
+            ## gamma: default (1/num_features)
+            num_features = X_train.shape[1]
+            gamma = (1.0/num_features) if "gamma" not in kwargs else kwargs["gamma"]
+
+            self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=prob)
         elif classifier == "SGD":
             if prob:
                 self.clf = SGDClassifier(loss="log")
