@@ -14,6 +14,7 @@
 import logging, os, sys, pickle
 from feelit import utils
 import numpy as np
+import pickle
 
 __LIBSVM__ = "/tools/libsvm/python"
 
@@ -684,11 +685,18 @@ class LIBSVM(object):
 
         return [0 if _y.startswith("_") else 1 for _y in y]
         
+    def scale(self, X, with_mean=True, with_std=True):
+        from sklearn.preprocessing import StandardScaler
+        scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
+        return scaler.fit_transform(X)
 
-    def load_train(self, path):
+    def load_train(self, path, scaling=False):
         data = np.load(path)
-        logging.debug("transforming X to list")
-        self.X_train = data['X'].tolist()
+
+        _scaling_msg_ = "and scaling " if scaling else ""
+        logging.debug("transforming %s X to list" % (_scaling_msg_))
+        self.X_train = data['X'].tolist() if not scaling else self.scale(data['X']).tolist()
+        
         logging.debug("transforming y to list")
         self.y_train = data['y'].tolist()
 
@@ -701,10 +709,14 @@ class LIBSVM(object):
         if type(self.y_train[0]) not in (int , float):
             self.y_train = self.numerize(y=self.y_train)
 
-    def load_test(self, path, numeric_label_map={}):
+    def load_test(self, path, scaling=False):
+
         data = np.load(path)
-        logging.debug("transforming X to list")
-        self.X_test = data['X'].tolist()
+
+        _scaling_msg_ = "and scaling " if scaling else ""
+        logging.debug("transforming %s X to list" % (_scaling_msg_))
+        self.X_test = data['X'].tolist() if not scaling else self.scale(data['X']).tolist()
+        
         logging.debug("transforming y to list")
         self.y_test = data['y'].tolist()
         
@@ -712,15 +724,6 @@ class LIBSVM(object):
         self.feature_name = path.split('/')[-1].replace('.Xy','').split('.npz')[0]
         
         logging.debug("got feature_name %s" % (self.feature_name))
-
-        # if type(self.y_train[0]) not in (int , float):
-        #     self.y_train = self.numerize(y=self.y_train)
-        # if type(self.y_test[0]) not in (int, float):
-        #     if not numeric_label_map:
-        #         self.label_map = pickle.load(open("numeric_label_map.pkl"))
-        #     else:
-        #         self.label_map = numeric_label_map
-        #     self.y_test = self.numerize(self.y_test)
 
     def set_param(self, args="-t 0 -c 4 -b 1 -q"):
         self.param = self.svmutil.svm_parameter(args)
@@ -801,17 +804,12 @@ class Learning(object):
         >> l = Learning(verbose=True)
         >> l.load(path="data/image_rgba_gist.Xy.npz")
 
+        ## normal training/testing
         >> to_delete = l.slice(each_class=">800")
-
-        ## normal training
         >> l.train(classifier="SVM", delete=to_delete, kernel="rbf", prob=True)
-
-        ## save model
         >> l.save_model()
-
-        ## normal testing
         >> l.test()
-
+        
         ## n-fold
         >> l.kFold(classifier="SVM")
 
@@ -835,18 +833,21 @@ class Learning(object):
         data = np.load(path)
         self.X = data['X']
         self.y = data['y']
-        self.feature_name = path.split('/')[-1].replace('.Xy','').split('.npz')[0]
+
+
+
+        self.feature_name = path.split('/')[-1].replace('.Xy','').replace(".train","").replace(".test","").split('.npz')[0]
         self.fn = self.feature_name
 
         ## build global idx --> local idx mapping
-        lid, prev = 0, self.y[0]
-        self.idx_map = {}
-        for i,current in enumerate(self.y):
-            if prev and prev != current:
-                prev = current
-                lid = 0
-            self.idx_map[i] = lid
-            lid += 1
+        # lid, prev = 0, self.y[0]
+        # self.idx_map = {}
+        # for i,current in enumerate(self.y):
+        #     if prev and prev != current:
+        #         prev = current
+        #         lid = 0
+        #     self.idx_map[i] = lid
+        #     lid += 1
 
 
     def nFold(self, **kwargs):
@@ -910,24 +911,24 @@ class Learning(object):
     def train(self, **kwargs):
         from sklearn import svm
         from sklearn.linear_model import SGDClassifier
-        from sklearn.preprocessing import StandardScaler        
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB, BaseNB
 
         ## setup a classifier
-        classifier = "SVM" if "classifier" not in kwargs else kwargs["classifier"].upper()
+        classifier = "SGD" if "classifier" not in kwargs else kwargs["classifier"]
 
-        ## slice 
-        delete = None if "delete" not in kwargs else kwargs["delete"]
+        # ## slice 
+        # delete = None if "delete" not in kwargs else kwargs["delete"]
 
-        if delete:
-            X_train = np.delete(utils.toDense(self.X), delete, axis=0)
-            y_train = np.delete(self.y, delete, axis=0)
-        else:
-            X_train = self.X
-            y_train = self.y
+        # if delete:
+        #     X_train = np.delete(utils.toDense(self.X), delete, axis=0)
+        #     y_train = np.delete(self.y, delete, axis=0)
+        # else:
+        X_train = self.X
+        y_train = self.y
 
         logging.debug("%d samples x %d features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
         logging.debug("%d samples in y_train" % ( y_train.shape[0] ))
-
 
         with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
         with_std = True if 'with_std' not in kwargs else kwargs['with_std']
@@ -936,11 +937,12 @@ class Learning(object):
         if utils.isSparse(self.X):
             with_mean = False
 
-        scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
-
-        ## apply scaling on self.X
-        logging.debug("applying a standard scaling")
-        X_train = scaler.fit_transform(X_train)
+        scaling = False if 'scaling' not in kwargs else kwargs['scaling']
+        if scaling:
+            scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
+            ## apply scaling on self.X
+            logging.debug("applying a standard scaling")
+            X_train = scaler.fit_transform(X_train)
 
         ## determine whether using predict or predict_proba
         prob = False if 'prob' not in kwargs else kwargs["prob"]
@@ -955,33 +957,56 @@ class Learning(object):
             gamma = (1.0/num_features) if "gamma" not in kwargs else kwargs["gamma"]
 
             self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=prob)
+
+            self.params = "%s_%s" % (classifier, kernel)
         elif classifier == "SGD":
+
+            shuffle = True if 'shuffle' not in kwargs else kwargs['shuffle']
             if prob:
-                self.clf = SGDClassifier(loss="log")
+                self.clf = SGDClassifier(loss="log", shuffle=shuffle)
             else:
-                self.clf = SGDClassifier()
+                self.clf = SGDClassifier(shuffle=shuffle)
+
+            self.params = "%s_%s" % (classifier, 'linear')
+        elif classifier == "GaussianNB":
+            self.clf = GaussianNB()
+
+            self.params = "%s_%s" % (classifier, 'NB')
         else:
-            logging.error("currently only support SVM and SGD classifiers")
-            return False
+            raise Exception("currently only support SVM, SGD and GaussianNB classifiers")
 
         logging.debug('training with %s classifier' % (classifier))
         self.clf.fit(X_train, y_train)
 
-    def save_model(self, root=".", feature_name="", ext=".model"):
-        import pickle
+    def predict(self, prob=True):
 
+        if prob:
+            self.predict_results = self.clf.predict_proba(self.X)
+        else:
+            self.predict_results = self.clf.predict(self.X)
+        return self.predict_results
+
+
+    def save_model(self, root=".", feature_name="", ext=".model"):
+        
         if not self.feature_name:
             if feature_name:
                 self.feature_name = feature_name
             else:
                 logging.warn("speficy the feature_name for the file to be saved")
                 return False
-        out_path = os.path.join(root, self.feature_name+".model" )
+        out_path = os.path.join(root, self.feature_name+"."+self.params+".model" )
         out_dir = os.path.dirname(out_path)
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
         pickle.dump(self.clf, open(out_path, "wb"), protocol=2)
         logging.info("dump model to %s" %(out_path))
+
+        return out_path
+
+    def load_model(self, path):
+        logging.info("loading model from %s" % (path))
+        self.clf = pickle.load(open(path))
 
     def kFold(self, **kwargs):
         from sklearn import svm
@@ -1006,7 +1031,7 @@ class Learning(object):
         ## setup a kFolder
         kf = KFold(n=n , n_folds=n_folds, shuffle=shuffle )
         logging.debug("setup a kFold with n=%d, n_folds=%d" % (n, n_folds))
-
+        
         ## setup a Scaler
         logging.debug("setup a StandardScaler")
         with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
@@ -1074,7 +1099,16 @@ class Learning(object):
 
             self.kfold_results.append( (i+1, y_test, result, score, clf.classes_) )
 
-    def save(self, root=".", feature_name="", ext=".npz"):
+    def save(self, root="results"):
+        
+        # self.clf.classes_ ## corresponding label of the column in predict_results
+        # self.predict_results ## predict probability over 40 classes
+        # self.y ## answers in testing data
+
+        out_path = os.path.join(root, self.feature_name+".res.npz" )
+        np.savez_compressed(out_path, tests=self.y, predicts=self.predict_results, classes=self.clf.classes_ )
+
+    def save_kFold(self, root=".", feature_name="", ext=".npz"):
         if not self.feature_name:
             if feature_name:
                 self.feature_name = feature_name
@@ -1095,7 +1129,6 @@ class Learning(object):
         if not os.path.exists(os.path.dirname(out_path)): os.makedirs(os.path.dirname(out_path))
 
         np.savez_compressed(out_path, tests=tests, predicts=predicts, scores=scores, classes=classes)
-
 
     def save_files(self, root=".", feature_name=""):
         """
