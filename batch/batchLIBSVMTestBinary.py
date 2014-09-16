@@ -1,4 +1,5 @@
 
+__support_kernels__ = ['linear', 'polynomial', 'rbf', 'sigmoid']
 
 import sys, os
 sys.path.append("../")
@@ -25,43 +26,56 @@ if __name__ == '__main__':
         usage()
         exit(-1)
 
-    ## e.g., ['text_TFIDF', 'image_rgba_gist']
-    feature_names = sys.argv[1:]
+    if len(sys.argv) >= 2:
+    
+        feature_name = sys.argv[1]
+        
+        if len(sys.argv) == 4:
+            _from = int(sys.argv[2])
+            _to = int(sys.argv[3])
+            emotions = emotions[_from:_to]
+    else:
+        print 'usage: python %s <feature_name> [from, to]' % (__file__)
+        exit()
+
 
     key = ["classifier", "kernel", "classtype", "prob"]
     val = [classifier, kernel, classtype, prob]
     arg = '_'.join(map(lambda a: '='.join([a[0], str(a[1])]), sorted(zip(key, val), key=lambda x:x[0])))
 
-    for feature_name in feature_names:
+    print zip(key, val)
+    print 'will test', len(emotions), 'emotions: ', emotions, 'go?', raw_input()
 
-        print '>>> processing', feature_name
 
-        ## load text_TFIDF.Xy.test.npz
-        npz_path = "../data/"+feature_name+".Xy.test.npz"
 
-        print ' > loading',npz_path
-        svm = LIBSVM(verbose=True)
-        svm.load_test(npz_path)
+    print '>>> processing', feature_name
 
-        model_root = os.path.join("../models/", feature_name+'.'+arg+".models")
-        results_root = os.path.join("../results/", feature_name+'.'+arg+".results")
+    ## load text_TFIDF.Xy.test.npz
+    npz_path = "../data/"+feature_name+".Xy.test.npz"
 
-        for label in utils.LJ40K:
+    print ' > loading',npz_path
+    svm = LIBSVM(verbose=True)
+    svm.load_test(npz_path, scaling=False)
 
-            print '>>> processing', label
-            model_path = os.path.join(model_root, feature_name+"."+label+".train.model")
-            
-            print ' > loading', label, 'model'
-            svm.load_model(model_path)
+    model_root = os.path.join("../models/", feature_name+'.'+arg+".models")
+    results_root = os.path.join("../results/", feature_name+'.'+arg+".results")
 
-            if not prob: options = "-q"
-            else: options = "-b 1 -q"
+    for i, label in enumerate(emotions):
 
-            print ' > predicting', label
-            svm.predict(target=label, param=options)
+        print '>>> processing %s (%d/%d)' % (label, i+1, len(emotions) )
+        model_path = os.path.join(model_root, feature_name+"."+label+".train.model")
+        
+        print ' > loading', label, 'model'
+        svm.load_model(model_path)
 
-            print ' > dumping', label, 'results'
-            results_path = os.path.join(results_root, feature_name+"."+label+".results")
+        if not prob: options = "-q"
+        else: options = "-b 1 -q"
 
-            dump(results_path, results=svm.p_vals, classes=svm.classes_, answers=svm.y_test)
+        print ' > predicting', label
+        svm.predict(target=label, param=options)
+
+        print ' > dumping', label, 'results'
+        results_path = os.path.join(results_root, feature_name+"."+label+".results")
+
+        dump(results_path, results=svm.p_vals, classes=svm.classes_, answers=svm.y_test)
             

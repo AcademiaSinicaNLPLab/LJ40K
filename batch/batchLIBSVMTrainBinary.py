@@ -1,4 +1,5 @@
 
+__support_kernels__ = ['linear', 'polynomial', 'rbf', 'sigmoid']
 
 import sys, os
 sys.path.append("../")
@@ -68,20 +69,20 @@ if __name__ == '__main__':
     
     out_root = os.path.join("../models/", feature_name+'.'+arg+".models")
 
-    for emotion in emotions:
+    for i, emotion in enumerate(emotions):
 
         ## check if existed
         if os.path.exists(os.path.join(out_root,feature_name+"."+emotion)):
             print '>>> skip', emotion
             continue
 
-        print '>>> processing', emotion
+        print '>>> processing %s (%d/%d)' % (emotion, i+1, len(emotions) )
 
         src_path = "../train/"+feature_name+"/Xy/"+feature_name+".Xy."+emotion+".train.npz"
 
         print '>> loading', src_path
         svm = LIBSVM(verbose=True)
-        svm.load_train(src_path)
+        svm.load_train(src_path, scaling=False)
 
         print '>> set param:',param
         svm.set_param(param)
