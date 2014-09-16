@@ -183,10 +183,16 @@ class LateFusion(object):
 class Evaluation(object):
     """
     from feelit.Evaluations import Evaluation
+
     ev = Evaluation(verbose=True)
     ev.loads(root="results/text_TFIDF.classifier=SGD_classtype=binary_kernel=linear_prob=True.results")
     ev.eval_all()
     ev.save(root="evals")
+
+    or just simply use
+
+    ev = Evaluation(input_root="results/text_TFIDF.classifier=SGD_classtype=binary_kernel=linear_prob=True.results", output_root="evals", verbose=True)
+
     """
     def __init__(self, **kwargs):
         loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
@@ -195,7 +201,17 @@ class Evaluation(object):
         self.PN = {}
         self.feature_name = None
 
-    def loads(self, root="results/text_TFIDF.classifier=SGD_classtype=binary_kernel=linear_prob=True.results"):
+        if 'input_root' in kwargs:
+            ## run loads and eval_all()
+            self.loads(root=kwargs['input_root'])
+            self.eval_all()
+            
+            if 'output_root' in kwargs:
+                self.save(root=kwargs['output_root'])
+            else:
+                self.save()
+
+    def loads(self, root):
         
         ## extract "text_TFIDF.classifier=SGD_classtype=binary_kernel=linear_prob=True"
         self.settings = root.split("/")[-1].split(".results")[0]
@@ -242,7 +258,7 @@ class Evaluation(object):
         self.scores = { label: self.accuracy(self.PNs[label], self.ratios[label]) for label in self.PNs }
         self.avg = sum(self.scores.values())/float(len(self.scores))
 
-    def save(self, root="performances"):
+    def save(self, root="evals"):
         
         if not os.path.exists(root): os.makedirs(root)
         out_path = os.path.join(root, self.settings+'.eval.npz')
