@@ -4,7 +4,8 @@ batch/*.pkl
 kFold
 test
 train
-models
+*models*
 data
-results
+*results*
 tmp
+raw
