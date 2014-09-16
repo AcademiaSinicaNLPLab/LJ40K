@@ -43,7 +43,8 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         feature_names = sys.argv[1:]
     else:
-        feature_names = ["text_TFIDF"]
+        print 'usage: python %s <feature_names>' 
+        exit(-1)
 
     for feature_name in feature_names:
 
