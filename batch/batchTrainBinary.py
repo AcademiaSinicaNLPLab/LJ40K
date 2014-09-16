@@ -1,4 +1,4 @@
-## split data
+_support_ = ['SVM', 'SGD', 'GaussianNB']
 
 import sys, os
 sys.path.append("../")
@@ -7,19 +7,22 @@ from feelit import utils
 classtype = "binary"    ## static value, don't modify it
 emotions = utils.LJ40K  
 
-classifier = "SVM"
-kernel = "rbf"
+classifier = "SGD"
+kernel = "linear"   ## don't care if the classifier ends with "NB"
 prob = True
-## params
+## params for SVM
 gamma = "default" # str(<float>) or "default"
 C = 2.0
 
 if __name__ == '__main__':
 
 
-
-    key = ["classifier", "kernel", "classtype", "prob"]
-    val = [classifier, kernel, classtype, prob]
+    if not classifier.endswith("NB"): # a SVM-like classifier
+        key = ["classifier", "kernel", "classtype", "prob"]
+        val = [classifier, kernel, classtype, prob]
+    else:
+        key = ["classifier", "classtype", "prob"]
+        val = [classifier, classtype, prob]
 
     arg = '_'.join(map(lambda a: '='.join([a[0], str(a[1])]), sorted(zip(key, val), key=lambda x:x[0])))
 
@@ -46,14 +49,14 @@ if __name__ == '__main__':
     
     out_root = os.path.join("../models/", feature_name+'.'+arg+".models")
 
-    for emotion in emotions:
+    for i, emotion in enumerate(emotions):
 
         ## check if existed
         if os.path.exists(os.path.join(out_root,feature_name+"."+emotion)):
             print '>>> skip', emotion
             continue
 
-        print '>>> processing', emotion
+        print '>>> processing %s (%d/%d)' % (emotion, i+1, len(emotions) )
 
         src_path = "../train/"+feature_name+"/Xy/"+feature_name+".Xy."+emotion+".train.npz"
 
@@ -62,10 +65,13 @@ if __name__ == '__main__':
         l.load(path=src_path)
 
         print '>> training'
-        if gamma != "default":
-            l.train(classifier=classifier, kernel=kernel, prob=prob, gamma=float(gamma), C=float(C) )
+        if classifier.endswith("NB"):
+            l.train(classifier=classifier, scaling=False)
         else:
-            l.train(classifier=classifier, kernel=kernel, prob=prob, C=float(C) )
+            if gamma != "default":
+                l.train(classifier=classifier, kernel=kernel, prob=prob, gamma=float(gamma), C=float(C), scaling=False )
+            else:
+                l.train(classifier=classifier, kernel=kernel, prob=prob, C=float(C), scaling=False)
 
         print '>> saving'
         l.save_model(root=out_root)
