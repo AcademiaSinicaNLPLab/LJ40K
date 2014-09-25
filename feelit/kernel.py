@@ -114,7 +114,7 @@ class RBF(object):
         logging.debug( 'build zero matrix' )
         self.K = np.zeros((_num_of_samples, _num_of_samples))
 
-
+        logging.debug( 'build the rbf-matrix `self.K`' )
         for i in range(_num_of_samples):
             self.K[i][i] = 1.0
             for j in range(i+1, _num_of_samples):
