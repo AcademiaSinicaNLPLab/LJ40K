@@ -31,6 +31,11 @@ class RBF(object):
 
     build the matrix K
         >> rbf.build()
+
+        >> rbf.dump(path="data/text_TFIDF.K.npz")
+
+        or also save csv
+        >> rbf.dump(path="data/text_TFIDF.K.npz", toCSV=True)
     """
     def __init__(self, **kwargs):
         """
@@ -120,3 +125,11 @@ class RBF(object):
             for j in range(i+1, _num_of_samples):
                 self.K[i][j] = self.K[j][i] = self._rbf_kernel_function(self.X[i], self.X[j], gamma="default")
 
+    def dump(self, path, toCSV=False):
+        logging.debug("dumping K to %s" % (path))
+        np.savez_compressed(path, K=self.K)
+        
+        if toCSV:
+            csv_path = '.'.join(path.split('.')[:-1]+['csv'])
+            logging.info('save csv version in %s' % (csv_path))
+            np.savetxt(csv_path, self.K, delimiter=",")
