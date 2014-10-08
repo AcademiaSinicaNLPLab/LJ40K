@@ -1,5 +1,6 @@
 *.pyc
 evals
+images
 batch/*.pkl
 kFold
 test
