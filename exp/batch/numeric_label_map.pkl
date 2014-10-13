@@ -1,0 +1,8 @@
+(dp0
+V_tired
+p1
+I0
+sVtired
+p2
+I1
+s.
