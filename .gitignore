@@ -1,12 +1,7 @@
 *.pyc
-evals
-images
-batch/*.pkl
-kFold
-test
-train
+exp/*
+*.pkl
 *models*
-data
 *results*
 tmp
-raw
+data
