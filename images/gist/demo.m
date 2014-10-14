@@ -9,6 +9,14 @@
 %        filenames{f} = fnames(f).name;         % put into filenames cell
 %    end
 
+% Usage:
+%
+% imageBaseDir = '~/projects/LJ40K/images/data/images/emotion-imgs-1x1-rgb/pattern/accomplished';
+% dataBaseDir = '~/projects/LJ40K/images/data/test';
+%
+% demo(filenames, imageBaseDir, dataBaseDir);
+%
+
 function []=demo(imageFileList, imageBaseDir, dataBaseDir)
     gist=[];
     for f = 1:size(imageFileList,1)
@@ -42,7 +50,7 @@ function []=demo(imageFileList, imageBaseDir, dataBaseDir)
             g=gist(:,f-1);
         end;
         gist=[gist g];
-        f
+        %f
     end;
         sp_make_dir(outFName);
         save(outFName, 'gist');

@@ -16,6 +16,8 @@ function []=phog_gen(imageFileList, imageBaseDir, dataBaseDir)
         p = anna_phog(I,bin,angle,L,roi);
 
         phog=[phog p];
+        %f
     end;
         sp_make_dir(outFName);
         save(outFName, 'phog');
+
