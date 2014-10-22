@@ -5,7 +5,9 @@
 % dest_dir
 %   e.g., '~/projects/LJ40K/images/data/test'
 
-function []=batch(source_dir, dest_dir)
+addpath('gist');
+
+function []=batch_gist(source_dir, dest_dir)
     
     % get directory, i.e., emotions, under `source_dir`
     dirInfo = dir(source_dir);                      % list dir
@@ -28,7 +30,7 @@ function []=batch(source_dir, dest_dir)
         
         % extract features
         disp( ['extracting features from ', fld_path] );
-        phog_gen(filenames, fld_path, dest_dir);
+        demo(filenames, fld_path, dest_dir);
 end
 
 disp('all done');
