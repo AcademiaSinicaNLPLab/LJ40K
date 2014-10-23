@@ -653,6 +653,9 @@ class LIBSVM(object):
 
 
     """
+    if not os.path.exists(__LIBSVM__):
+        logging.error("can't find the LIBSVM in %s" % (__LIBSVM__))
+    
     sys.path.append(__LIBSVM__)
 
     import svmutil
