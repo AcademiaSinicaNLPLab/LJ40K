@@ -1,6 +1,5 @@
 *.pyc
 exp/*
-*.pkl
 *models*
 *results*
 tmp
