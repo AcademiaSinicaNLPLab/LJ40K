@@ -1,15 +1,15 @@
 % source_dir
-%   e.g., /home/lwkulab/maxis/projects/LJ40K/images/data/mat/rgb/gist
+%   e.g., /home/lwkulab/maxis/projects/LJ40K/images/data/mat/gist/rgb
 %
 % dest_dir
-%   e.g., /home/lwkulab/maxis/projects/LJ40K/images/data/csv/rgb/gist
+%   e.g., /home/lwkulab/maxis/projects/LJ40K/images/data/csv/gist/rgb
 
 function []=BatchToCSV(source_dir, dest_dir)
     dirInfo = dir(source_dir);                      % list dir
+    
     mat_files = {dirInfo(:).name}';                  % get files
     mat_files(ismember(mat_files,{'.','..'})) = []; % remove . and ..
     
-
     for i = 1:size(mat_files)
         mat_name = mat_files{i};
         csv_name = strrep(mat_name, '.mat', '.csv');
