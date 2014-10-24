@@ -60,7 +60,12 @@ def relabel(y, label): return [label if _y == label else "_"+label for _y in y ]
 def save(G, path="random_idx.pkl"): pickle.dump(G, open(path, "wb"), protocol=2)
 
 def load(path="random_idx.pkl"): return pickle.load(open(path))
-
+def usage():
+    print 'Usage:'
+    print 'python %s [feature_names]' % (__file__)
+    print
+    print 'e.g., feature_names: `image_rgba_phog`'
+    exit(-1)
 
 if __name__ == '__main__':
     
@@ -68,7 +73,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         feature_names = sys.argv[1:]
     else:
-        feature_names = ["image_rgba_phog"]
+        usage()
 
     ## generate
     # G = gen_idx(y)
@@ -84,7 +89,7 @@ if __name__ == '__main__':
 
         ## load text_TFIDF.Xy.test.npz
         ## load text_TFIDF.Xy.train.npz
-        npz_path = "../data/"+feature_name+".Xy.train.npz"
+        npz_path = "../exp/data/"+feature_name+".Xy.train.npz"
 
         print ' > loading',npz_path
 
@@ -109,7 +114,7 @@ if __name__ == '__main__':
 
             _y = relabel(_y, label)
 
-            path = "../train/"+feature_name+"/Xy/"+feature_name+".Xy."+label+".train.npz"
+            path = "../exp/train/"+feature_name+"/Xy/"+feature_name+".Xy."+label+".train.npz"
             print ' > dumping', path
             dump(path, X=_X, y=_y)
 
