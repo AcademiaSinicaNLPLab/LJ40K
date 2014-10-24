@@ -316,6 +316,18 @@ class ImageDrawer(object):
                 
                 fillcolor = self.matrix[row][col]
                 draw.rectangle(xy=[(x0,y0),(x1,y1)], fill=fillcolor)
+    def draw_blank(self, **kwargs):
+        ## default values
+        w = 1 if 'w' not in kwargs else kwargs['w']
+        h = 1 if 'h' not in kwargs else kwargs['h']
+
+        img_width = w
+        img_height = h
+
+        self.image = Image.new('RGB', (img_width, img_height))
+        
+        draw = ImageDraw.Draw(self.image)
+        draw.rectangle(xy=[(0,0),(w,h)], fill=self._white)
 
     ## path-related functions
     def generatePaths(self, parent, docs, w, h, alpha, base):
@@ -387,21 +399,19 @@ class ImageDrawer(object):
             isValidMatrix = self.generateColorMatrix(alpha=alpha, percent=percent)
 
             if isValidMatrix:
-
                 ## draw image
                 logging.debug('draw patterns image %d' % (udocID))
                 self.draw(w=w, h=h)
-
-                ## save image
-                fn = self.getFileName(udocID, alpha, ext=ext)
-                root = self.getRoot(udocID)
-                logging.debug('save image of %d under %s' % (udocID, root))
-                self.save(fname=fn, root=root)
-
             else:
-                logging.debug('no image for %d' % (udocID))
-                continue
+                ## draw blank image
+                self.draw_blank(w=w, h=h)
+                logging.debug('no image for %d; create a blank one' % (udocID))
 
+            ## save image
+            fn = self.getFileName(udocID, alpha, ext=ext)
+            root = self.getRoot(udocID)
+            logging.debug('save image of %d under %s' % (udocID, root))
+            self.save(fname=fn, root=root)
 
 if __name__ == '__main__':
 
