@@ -183,12 +183,12 @@ class LoadFile(object):
         labels = sorted(self.Xs.keys())
         for label in labels:
 
-            if self.X == None: 
+            if self.X is None: 
                 self.X = np.array(self.Xs[label])
             else:
                 self.X = np.concatenate((self.X, self.Xs[label]), axis=0)
 
-            if self.y == None: 
+            if self.y is None: 
                 self.y = np.array(self.ys[label])
             else:
                 self.y = np.concatenate((self.y, self.ys[label]), axis=0)
@@ -653,6 +653,9 @@ class LIBSVM(object):
 
 
     """
+    if not os.path.exists(__LIBSVM__):
+        logging.error("can't find the LIBSVM in %s" % (__LIBSVM__))
+    
     sys.path.append(__LIBSVM__)
 
     import svmutil
