@@ -5,7 +5,9 @@
 % dest_dir
 %   e.g., '~/projects/LJ40K/images/data/test'
 
-function []=batch(source_dir, dest_dir)
+addpath('phog');
+
+function [] = ExtractPhogFeature(source_dir, dest_dir)
     
     % get directory, i.e., emotions, under `source_dir`
     dirInfo = dir(source_dir);                      % list dir
