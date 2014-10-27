@@ -219,6 +219,8 @@ def RandomSample(arrays, dim=0.1, index_file=None):
     # random sampling
     import random
     import numpy as np
+    import os
+    import pickle
 
     ## check if n are all the same
     ns = [ len(array) if 'shape' not in dir(array) else array.shape[0] for array in arrays ]
@@ -230,8 +232,8 @@ def RandomSample(arrays, dim=0.1, index_file=None):
         delete_indexes = []
 
         if index_file:
-            import pickle
-            delete_indexes = pickle.load(open(index_file))
+            if os.path.exists(index_file):
+                delete_indexes = pickle.load(open(index_file))
 
         if not delete_indexes:
             # get number of samples
@@ -254,6 +256,13 @@ def RandomSample(arrays, dim=0.1, index_file=None):
             random.shuffle(all_indexes)
             choosen_indexes = set(all_indexes[:dim])
             delete_indexes = [idx for idx in all_indexes if idx not in choosen_indexes]
+
+            ## save to path of `index_file`
+            if index_file:
+                dest_dir = os.path.dirname(index_file)
+                if not os.path.isdir(dest_dir)
+                    os.makedirs(dest_dir)
+                pickle.dump(delete_indexes, open(index_file, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
         sampled = []
         for array in arrays:
