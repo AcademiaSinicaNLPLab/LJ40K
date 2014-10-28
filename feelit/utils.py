@@ -260,7 +260,7 @@ def RandomSample(arrays, dim=0.1, index_file=None):
             ## save to path of `index_file`
             if index_file:
                 dest_dir = os.path.dirname(index_file)
-                if not os.path.isdir(dest_dir)
+                if not os.path.isdir(dest_dir):
                     os.makedirs(dest_dir)
                 pickle.dump(delete_indexes, open(index_file, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
