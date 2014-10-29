@@ -22,20 +22,36 @@ class RBF(object):
     usage:
         >> from feelit.kernel import RBF
         >> rbf = RBF(verbose=True)
-        >> rbf.load(path="data/text_TFIDF.Xy.npz")
+        >> rbf.load(path="text_TFIDF.Xy.npz")
         
     maybe do random sampling before build:
         >> from feelit.utils import RandomSample
-        >> rbf.X, rbf.y = RandomSample((rbf.X, rbf.y), 0.1) # keep only 10%
-        >> rbf.X, rbf.y = RandomSample((rbf.X, rbf.y), index_file="data/idxs.pkl") # use certain index file
 
-    build the matrix K
-        >> rbf.build()
+        # keep only 10%
+        >> rbf.X, rbf.y = RandomSample((rbf.X, rbf.y), 0.1)
 
-        >> rbf.dump(path="data/text_TFIDF.K.npz")
+        # use certain index file if `idxs.pkl` exists
+        >> rbf.X, rbf.y = RandomSample((rbf.X, rbf.y), index_file="idxs.pkl")
+
+        # save the index into `index_file` if `new_idxs.pkl` didn't exist
+        >> rbf.X, rbf.y = RandomSample((rbf.X, rbf.y), 0.1, index_file="new_idxs.pkl")
+
+    and devide into training and developing sets
+
+        >> from feelit.utils import devide
+        >> tr, dev = devide(rbf.X, 0.9) # 90% - 10%
+
+    build matrices `K_tr` and `K_dev`
+
+        >> K_tr = rbf.build(tr, tr)
+        >> K_dev = rbf.build(tr, dev)
+
+    save results
+
+        >> rbf.dump(path="data/text_TFIDF.Ky.npz")
 
         or also save csv
-        >> rbf.dump(path="data/text_TFIDF.K.npz", toCSV=True)
+        >> rbf.dump(path="data/text_TFIDF.Ky.npz", toCSV=True)
     """
     def __init__(self, **kwargs):
         """
@@ -71,6 +87,11 @@ class RBF(object):
         self.X = data['X'] if data['X'].shape else data['X'].all().toarray()
         self.y = data['y']
 
+        self._shape_X_str = 'x'.join(map(lambda x:str(x), self.X.shape))
+        self._shape_y_str = 'x'.join(map(lambda x:str(x), self.y.shape))
+
+        logging.info("X: %s and y: %s have been loaded" % (self._shape_X_str, self._shape_y_str))
+
     def _squared_Euclidean_distance(self, p, q):
         return sum([ (_p-_q)*(_p-_q) for _p, _q in zip(p, q)])
 
@@ -90,7 +111,25 @@ class RBF(object):
             for j in range(10):
                 self.Ksmall[i][j] = self.Ksmall[j][i] = self._rbf_kernel_function(self.X[i], self.X[j], gamma="default")
 
-    def build(self, X=None):
+    def build(self, A, B):
+        """
+        Parameters
+        ==========
+
+        """
+        # determine shape
+        m, n = len(A), len(B)
+        self.K = np.zeros((m, n))
+
+        logging.info("building K from (%s) and (%s)" % (utils.strShape(A), utils.strShape(B)))
+
+        for i in xrange(m):
+            for j in xrange(n):
+                self.K[i][j] = self._rbf_kernel_function(A[i], B[j], gamma="default")
+
+        logging.info("K with size %s has been built." % utils.strShape(self.K))
+
+    def _build(self, X=None):
         """
         Parameters
         ==========
@@ -126,8 +165,19 @@ class RBF(object):
                 self.K[i][j] = self.K[j][i] = self._rbf_kernel_function(self.X[i], self.X[j], gamma="default")
 
     def dump(self, path, toCSV=False):
-        logging.debug("dumping K to %s" % (path))
-        np.savez_compressed(path, K=self.K)
+        """
+        Parameters
+        ==========
+        path: str
+            path to the matrix containing `K` and `y`
+
+        Example
+        =======
+        >> rbf.dump(path="data/text_TFIDF.Ky.npz", toCSV=True)
+
+        """
+        logging.debug("dumping K and y to %s" % (path))
+        np.savez_compressed(path, K=self.K, y=self.y)
         
         if toCSV:
             csv_path = '.'.join(path.split('.')[:-1]+['csv'])

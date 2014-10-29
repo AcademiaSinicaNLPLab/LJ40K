@@ -189,6 +189,53 @@ def GenerateDeleteIndexes(n, dim, path=None):
     else:
         return delete_indexes
 
+def strShape(X):
+    return 'x'.join(map(lambda x:str(x), X.shape))
+
+def devide(X, part, shuffle=False):
+    """
+    Devide X (array, matrix or list) into subsets according to the percent
+
+    Usage
+    =====
+    >> from feelit.utils import devide
+    >> devide(X, 0.5)
+    >> devide(X, 100)
+    >> devide(X, 100, shuffle=True)
+
+    Parameters
+    ==========
+    X: array, matrix or list
+
+    part: int or float
+
+    random: boolean
+
+    Returns
+    =======
+    devided X: tuple
+
+    """
+    n = len(X)
+    endpoint = -1
+    # deal with part
+    if type(part) == float and part < 1.0 and part > 0:
+        endpoint = n*part
+    elif type(part) == float and ( part >= 1.0 or part <= 0):
+        raise Exception('the value of `part` must lie in the range from 0 ot 1')        
+    elif type(part) == int and part < n:
+        endpoint = part
+    elif type(part) == int and part >= n:
+        raise Exception('the value of `part` must less than total samples')
+    else:
+        raise Exception('check the value and type of `part`, it must be int or float')
+
+    if shuffle:
+        import random
+        random.shuffle(X)
+
+    return (X[:endpoint], X[endpoint:])
+        
 
 def RandomSample(arrays, dim=0.1, index_file=None):
     """
@@ -219,6 +266,8 @@ def RandomSample(arrays, dim=0.1, index_file=None):
     # random sampling
     import random
     import numpy as np
+    import os
+    import pickle
 
     ## check if n are all the same
     ns = [ len(array) if 'shape' not in dir(array) else array.shape[0] for array in arrays ]
@@ -230,8 +279,8 @@ def RandomSample(arrays, dim=0.1, index_file=None):
         delete_indexes = []
 
         if index_file:
-            import pickle
-            delete_indexes = pickle.load(open(index_file))
+            if os.path.exists(index_file):
+                delete_indexes = pickle.load(open(index_file))
 
         if not delete_indexes:
             # get number of samples
@@ -254,6 +303,13 @@ def RandomSample(arrays, dim=0.1, index_file=None):
             random.shuffle(all_indexes)
             choosen_indexes = set(all_indexes[:dim])
             delete_indexes = [idx for idx in all_indexes if idx not in choosen_indexes]
+
+            ## save to path of `index_file`
+            if index_file:
+                dest_dir = os.path.dirname(index_file)
+                if not os.path.isdir(dest_dir):
+                    os.makedirs(dest_dir)
+                pickle.dump(delete_indexes, open(index_file, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
         sampled = []
         for array in arrays:
