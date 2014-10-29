@@ -189,6 +189,9 @@ def GenerateDeleteIndexes(n, dim, path=None):
     else:
         return delete_indexes
 
+def strShape(X):
+    return 'x'.join(map(lambda x:str(x), X.shape))
+
 def devide(X, part, shuffle=False):
     """
     Devide X (array, matrix or list) into subsets according to the percent
@@ -233,9 +236,6 @@ def devide(X, part, shuffle=False):
 
     return (X[:endpoint], X[endpoint:])
         
-
-
-
 
 def RandomSample(arrays, dim=0.1, index_file=None):
     """
