@@ -189,6 +189,53 @@ def GenerateDeleteIndexes(n, dim, path=None):
     else:
         return delete_indexes
 
+def devide(X, part, shuffle=False):
+    """
+    Devide X (array, matrix or list) into subsets according to the percent
+
+    Usage
+    =====
+    >> from feelit.utils import devide
+    >> devide(X, 0.5)
+    >> devide(X, 100)
+    >> devide(X, 100, shuffle=True)
+
+    Parameters
+    ==========
+    X: array, matrix or list
+
+    part: int or float
+
+    random: boolean
+
+    Returns
+    =======
+    devided X: tuple
+
+    """
+    n = len(X)
+    endpoint = -1
+    # deal with part
+    if type(part) == float and part < 1.0 and part > 0:
+        endpoint = n*part
+    elif type(part) == float and ( part >= 1.0 or part <= 0):
+        raise Exception('the value of `part` must lie in the range from 0 ot 1')        
+    elif type(part) == int and part < n:
+        endpoint = part
+    elif type(part) == int and part >= n:
+        raise Exception('the value of `part` must less than total samples')
+    else:
+        raise Exception('check the value and type of `part`, it must be int or float')
+
+    if shuffle:
+        import random
+        random.shuffle(X)
+
+    return (X[:endpoint], X[endpoint:])
+        
+
+
+
 
 def RandomSample(arrays, dim=0.1, index_file=None):
     """
