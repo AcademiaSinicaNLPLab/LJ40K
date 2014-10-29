@@ -36,8 +36,17 @@ class RBF(object):
         # save the index into `index_file` if `new_idxs.pkl` didn't exist
         >> rbf.X, rbf.y = RandomSample((rbf.X, rbf.y), 0.1, index_file="new_idxs.pkl")
 
-    build the matrix K
-        >> rbf.build()
+    and devide into training and developing sets
+
+        >> from feelit.utils import devide
+        >> tr, dev = devide(rbf.X, 0.9) # 90% - 10%
+
+    build matrices `K_tr` and `K_dev`
+
+        >> K_tr = rbf.build(tr, tr)
+        >> K_dev = rbf.build(tr, dev)
+
+    save results
 
         >> rbf.dump(path="data/text_TFIDF.Ky.npz")
 
@@ -102,7 +111,25 @@ class RBF(object):
             for j in range(10):
                 self.Ksmall[i][j] = self.Ksmall[j][i] = self._rbf_kernel_function(self.X[i], self.X[j], gamma="default")
 
-    def build(self, X=None):
+    def build(self, A, B):
+        """
+        Parameters
+        ==========
+
+        """
+        # determine shape
+        m, n = len(A), len(B)
+        self.K = np.zeros((m, n))
+
+        logging.info("building K from (%s) and (%s)" % (utils.strShape(A), utils.strShape(B)))
+
+        for i in xrange(m):
+            for j in xrange(n):
+                self.K[i][j] = self._rbf_kernel_function(A[i], B[j], gamma="default")
+
+        logging.info("K with size %s has been built." % utils.strShape(self.K))
+
+    def _build(self, X=None):
         """
         Parameters
         ==========
