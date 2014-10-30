@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from math import exp
+
 LJ40K = ['accomplished', 'aggravated', 'amused', 'annoyed', 'anxious', 'awake', 'blah', 'blank', 'bored', 'bouncy', 'busy', 'calm', 'cheerful', 'chipper', 'cold', 'confused', 'contemplative', 'content', 'crappy', 'crazy', 'creative', 'crushed', 'depressed', 'drained', 'ecstatic', 'excited', 'exhausted', 'frustrated', 'good', 'happy', 'hopeful', 'hungry', 'lonely', 'loved', 'okay', 'pissed off', 'sad', 'sick', 'sleepy', 'tired']
 
 def connect_mongo(mongo_addr='doraemon.iis.sinica.edu.tw', db_name='LJ40K'):
@@ -191,6 +193,18 @@ def GenerateDeleteIndexes(n, dim, path=None):
 
 def strShape(X):
     return 'x'.join(map(lambda x:str(x), X.shape))
+
+def squared_Euclidean_distance(p, q):
+    return sum([ (_p-_q)*(_p-_q) for _p, _q in zip(p, q)])
+
+def rbf_kernel_function(v1, v2, gamma="default"):
+    if gamma == "default":
+        num_features = len(v1)
+        gamma = 1.0/num_features
+
+    sed = squared_Euclidean_distance(v1, v2)
+    k_v1_v2 = exp(-1.0*gamma*sed)
+    return k_v1_v2
 
 def devide(X, part, shuffle=False):
     """

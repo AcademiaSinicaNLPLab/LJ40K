@@ -13,7 +13,39 @@
 import logging, os
 from feelit import utils
 import numpy as np
-from math import exp
+from threading import Thread
+
+class MyThread(Thread): 
+    def join(self): 
+        super(MyThread, self).join() 
+        return self.result 
+
+class Builder(MyThread):
+    def __init__(self, pair, **kwargs):
+
+        Thread.__init__(self)
+
+        self.pair = pair
+
+        loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
+        logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)
+
+    def run(self):
+
+        (A, B) = self.pair
+        m, n = len(A), len(B)
+
+        K = np.zeros((m, n))
+        logging.info("building K from (%s) and (%s)" % (utils.strShape(A), utils.strShape(B)))
+
+        for i in xrange(m):
+            for j in xrange(n):
+                K[i][j] = utils.rbf_kernel_function(A[i], B[j], gamma="default")
+
+        logging.info("K with size %s has been built." % utils.strShape(K))
+
+        self.result = K
+
 
 class RBF(object):
     """
@@ -39,26 +71,29 @@ class RBF(object):
     and devide into training and developing sets
 
         >> from feelit.utils import devide
-        >> tr, dev = devide(rbf.X, 0.9) # 90% - 10%
+        >> X_tr, X_dev = devide(rbf.X, 0.9) # 90% - 10%
+        >> y_tr, y_dev = devide(rbf.y, 0.9)
 
-    build matrices `K_tr` and `K_dev`
+    build matrices `K_tr` and `K_dev` (multi-threading)
 
-        >> K_tr = rbf.build(tr, tr)
-        >> K_dev = rbf.build(tr, dev)
+        >> K_tr, K_dev = rbf.build( (X_tr, X_tr), (X_tr, X_dev) )
+
+    or build one-by-one
+
+        >> K_tr = rbf.build_one(X_tr, X_tr)
+        >> K_dev = rbf.build_one(X_tr, X_dev)
 
     save results
 
-        >> rbf.dump(path="data/text_TFIDF.Ky.npz")
-
-        or also save csv
-        >> rbf.dump(path="data/text_TFIDF.Ky.npz", toCSV=True)
+        >> rbf.save("data/text_TFIDF.Ky.train.npz", K_tr=K_tr,   y_tr=y_tr   )
+        >> rbf.save("data/text_TFIDF.Ky.dev.npz",   K_dev=K_dev, y_dev=y_dev )
     """
     def __init__(self, **kwargs):
         """
         Parameters
         ==========
             verbose: True/False
-        """        
+        """
         loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
         logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)        
         
@@ -111,25 +146,66 @@ class RBF(object):
             for j in range(10):
                 self.Ksmall[i][j] = self.Ksmall[j][i] = self._rbf_kernel_function(self.X[i], self.X[j], gamma="default")
 
-    def build(self, A, B):
+    def build_one(self, A, B):
         """
         Parameters
         ==========
+        A, B are matrices (numpy.array format)
+
+        Example
+        =======
+        K_tr = build_one(X_tr, X_tr)
+        K_dev = build_one(X_tr, X_dev)
 
         """
         # determine shape
         m, n = len(A), len(B)
-        self.K = np.zeros((m, n))
+        K = np.zeros((m, n))
 
         logging.info("building K from (%s) and (%s)" % (utils.strShape(A), utils.strShape(B)))
 
         for i in xrange(m):
             for j in xrange(n):
-                self.K[i][j] = self._rbf_kernel_function(A[i], B[j], gamma="default")
+                K[i][j] = self._rbf_kernel_function(A[i], B[j], gamma="default")
 
-        logging.info("K with size %s has been built." % utils.strShape(self.K))
+        logging.info("K with size %s has been built." % utils.strShape(K))
+        return K
 
-    def _build(self, X=None):
+    def build(self, *pairs):
+        """
+        Parameters
+        ==========
+
+        pairs: list of pair( Matrix_1, Matrix_2 )
+            where Matrix_1, 2 are in numpy array format
+
+            Matrix: (n x m) numpy.ndarray
+                n row: n documents
+                m col: m features
+
+            i.e.,
+
+            Matrix = [ v_1, ..., v_n ], where
+                v_1: [ f1, ...,  fm  ]
+                v_2: [ f1, ...,  fm  ]
+                ...
+                v_n: [ f1, ...,  fm  ]
+
+        Example
+        =======
+        K_tr, K_dev = build( (X_tr, X_tr), (X_tr, X_dev) )
+
+        """
+        ts = [Builder(pair) for pair in pairs] # [Builder((X_tr, X_tr)), Builder((X_tr, X_dev))]
+
+        # start threads
+        for t in ts: t.start()
+
+        # wait and get results
+        self.Ks = [t.join() for t in ts]
+        return self.Ks
+
+    def _build_deprecated(self, X=None):
         """
         Parameters
         ==========
@@ -164,22 +240,30 @@ class RBF(object):
             for j in range(i+1, _num_of_samples):
                 self.K[i][j] = self.K[j][i] = self._rbf_kernel_function(self.X[i], self.X[j], gamma="default")
 
-    def dump(self, path, toCSV=False):
+
+    def save(self, path, **kwargs):
+        import re
         """
         Parameters
         ==========
         path: str
-            path to the matrix containing `K` and `y`
+            path to the matrix containing kernel matrices
+            (K_tr, K_dev) and labels (y_tr, y_dev)
 
         Example
         =======
-        >> rbf.dump(path="data/text_TFIDF.Ky.npz", toCSV=True)
-
+        >> save("data/text_TFIDF.Ky.train.npz", K_tr=K_tr, y_tr=y_tr )
+        >> save("data/text_TFIDF.Ky.dev.npz", K_dev=K_dev, y_dev=y_dev )
         """
         logging.debug("dumping K and y to %s" % (path))
-        np.savez_compressed(path, K=self.K, y=self.y)
-        
-        if toCSV:
-            csv_path = '.'.join(path.split('.')[:-1]+['csv'])
-            logging.info('save csv version in %s' % (csv_path))
-            np.savetxt(csv_path, self.K, delimiter=",")
+
+        dirname = os.path.dirname(path)
+        if not os.path.exists(dirname): os.makedirs(dirname)
+
+        # np.savez_compressed("exp/train/rgba_gist+rgba_phog/K/rgba_gist+rgba_phog.Ky.happy.npz", K=(K_tr, K_dev), y=(y_tr, y_dev) )
+        np.savez_compressed(path, **kwargs)        
+        # if toCSV:
+        #     csv_path = re.sub(r'\.npz$', '.csv', path)
+        #     logging.info('save csv version at %s' % (csv_path))
+
+        #     np.savetxt(csv_path, self.Ks, delimiter=",")
