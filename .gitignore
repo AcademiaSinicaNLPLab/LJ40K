@@ -1,5 +1,6 @@
 *.pyc
 exp/*
+dev/*
 *models*
 *results*
 tmp
