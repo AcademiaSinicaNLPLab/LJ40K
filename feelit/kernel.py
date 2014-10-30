@@ -13,17 +13,19 @@
 import logging, os
 from feelit import utils
 import numpy as np
+from threading import Thread
 
 class MyThread(Thread): 
     def join(self): 
         super(MyThread, self).join() 
         return self.result 
 
-class Builder(Thread):
-    def __init__(self, pair, threadname='anonymous', **kwargs):
+class Builder(MyThread):
+    def __init__(self, pair, **kwargs):
+
+        Thread.__init__(self)
 
         self.pair = pair
-        self.setName(str(threadname))
 
         loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
         logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)
@@ -40,7 +42,7 @@ class Builder(Thread):
             for j in xrange(n):
                 K[i][j] = utils.rbf_kernel_function(A[i], B[j], gamma="default")
 
-        logging.info("K with size %s has been built." % utils.strShape(self.K))
+        logging.info("K with size %s has been built." % utils.strShape(K))
 
         self.result = K
 
@@ -74,7 +76,7 @@ class RBF(object):
 
     build matrices `K_tr` and `K_dev` (multi-threading)
 
-        >> K_tr, K_dev = build( (X_tr, X_tr), (X_tr, X_dev) )
+        >> K_tr, K_dev = rbf.build( (X_tr, X_tr), (X_tr, X_dev) )
 
     or build one-by-one
 
@@ -83,10 +85,8 @@ class RBF(object):
 
     save results
 
-        >> rbf.dump(path="data/text_TFIDF.Ky.npz")
-
-        or also save csv
-        >> rbf.dump(path="data/text_TFIDF.Ky.npz", toCSV=True)
+        >> rbf.save("data/text_TFIDF.Ky.train.npz", K_tr=K_tr,   y_tr=y_tr   )
+        >> rbf.save("data/text_TFIDF.Ky.dev.npz",   K_dev=K_dev, y_dev=y_dev )
     """
     def __init__(self, **kwargs):
         """
@@ -94,7 +94,6 @@ class RBF(object):
         ==========
             verbose: True/False
         """
-        Thread.__init__(self)
         loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
         logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)        
         
@@ -241,22 +240,30 @@ class RBF(object):
             for j in range(i+1, _num_of_samples):
                 self.K[i][j] = self.K[j][i] = self._rbf_kernel_function(self.X[i], self.X[j], gamma="default")
 
-    def dump(self, path, toCSV=False):
+
+    def save(self, path, **kwargs):
+        import re
         """
         Parameters
         ==========
         path: str
-            path to the matrix containing `K` and `y`
+            path to the matrix containing kernel matrices
+            (K_tr, K_dev) and labels (y_tr, y_dev)
 
         Example
         =======
-        >> rbf.dump(path="data/text_TFIDF.Ky.npz", toCSV=True)
-
+        >> save("data/text_TFIDF.Ky.train.npz", K_tr=K_tr, y_tr=y_tr )
+        >> save("data/text_TFIDF.Ky.dev.npz", K_dev=K_dev, y_dev=y_dev )
         """
         logging.debug("dumping K and y to %s" % (path))
-        np.savez_compressed(path, Ks=self.Ks, y=self.y)
-        
-        if toCSV:
-            csv_path = '.'.join(path.split('.')[:-1]+['csv'])
-            logging.info('save csv version in %s' % (csv_path))
-            np.savetxt(csv_path, self.Ks, delimiter=",")
+
+        dirname = os.path.dirname(path)
+        if not os.path.exists(dirname): os.makedirs(dirname)
+
+        # np.savez_compressed("exp/train/rgba_gist+rgba_phog/K/rgba_gist+rgba_phog.Ky.happy.npz", K=(K_tr, K_dev), y=(y_tr, y_dev) )
+        np.savez_compressed(path, **kwargs)        
+        # if toCSV:
+        #     csv_path = re.sub(r'\.npz$', '.csv', path)
+        #     logging.info('save csv version at %s' % (csv_path))
+
+        #     np.savetxt(csv_path, self.Ks, delimiter=",")
