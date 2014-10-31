@@ -30,7 +30,13 @@ if __name__ == '__main__':
     npzs = filter(lambda x:x.endswith('.npz'), os.listdir(in_dir))
     to_process = sorted(npzs)[begin:end]
 
+    print 'files to be processed:'
+    print '\n'.join(['\t'+x for x in to_process])
+    print '='*50
+    
     for npz_fn in to_process:
+
+        print 'processing', npz_fn
 
         rbf = RBF(verbose=True)
         rbf.load(os.path.join(in_dir, npz_fn))
@@ -49,4 +55,3 @@ if __name__ == '__main__':
         
         rbf.save(os.path.join(out_dir, out_train_fn), K_tr=K_tr,   y_tr=y_tr   )
         rbf.save(os.path.join(out_dir, out_dev_fn),   K_dev=K_dev, y_dev=y_dev ) 
-   
