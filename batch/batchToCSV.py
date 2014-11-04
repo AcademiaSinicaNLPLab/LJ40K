@@ -1,11 +1,18 @@
 # npz to csv
 import numpy as np
-import os
+import os, sys
 
-feature = 'rgba_gist+rgba_phog'
 
-Ky_root = 'exp/train/'+feature+'/Ky/'
-csv_root = 'exp/train/'+feature+'/csv/'
+if len(sys.argv) != 1:
+    print 'python batchToCSV.py [feature_name]'
+    print 
+    print '  e.g., feature_name: rgba_gist+rgba_phog'
+    exit(-1)
+# feature = 'rgba_gist+rgba_phog'
+feature = sys.argv[1]
+
+Ky_root = '../exp/train/'+feature+'/Ky/'
+csv_root = '../exp/train/'+feature+'/csv/'
 
 classcode = [1, -1]
 
@@ -19,6 +26,7 @@ for npz in npzs:
 
     npz_path = os.path.join(Ky_root, npz) 
 
+    print 'load', npz
     data = np.load(npz_path)
 
     feature, content, emotion, dtype, ext = npz.split('.') 
@@ -33,7 +41,11 @@ for npz in npzs:
     K = data['K_'+dtype]
     y = [classcode[1] if x.startswith('_') else classcode[0] for x in data['y_'+dtype]]
 
-    if dtype == 'dev':
-        # to csv
-    np.savetxt(os.path.join(csv_root, feature+'.K.'+emotion+'.'+dtype+'.csv'),   K,   delimiter=",", fmt="%.6f")
-    np.savetxt(os.path.join(csv_root, feature+'.y.'+emotion+'.'+dtype+'.csv'),   y,   delimiter=",", fmt="%d")
+    K_path = os.path.join(csv_root, feature+'.K.'+emotion+'.'+dtype+'.csv')
+    y_path = os.path.join(csv_root, feature+'.y.'+emotion+'.'+dtype+'.csv')
+
+    print 'save K to', K_path
+    np.savetxt(K_path,   K,   delimiter=",", fmt="%.6f")
+
+    print 'save y to', y_path
+    np.savetxt(y_path,   y,   delimiter=",", fmt="%d")
