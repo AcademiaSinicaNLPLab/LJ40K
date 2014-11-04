@@ -29,12 +29,12 @@ for npz in npzs:
     print 'load', npz
     data = np.load(npz_path)
 
-    feature, content, emotion, dtype, ext = npz.split('.') 
+    feature, content, emotion, dtype_full, ext = npz.split('.')
 
     if npz.endswith('.dev.npz'):
         dtype = 'dev'
-    elif  npz.endswith('.train.npz'):
-        dtype = 'train'
+    elif npz.endswith('.train.npz'):
+        dtype = 'tr'
     else:
         continue
 
