@@ -3,7 +3,7 @@ import numpy as np
 import os, sys
 
 
-if len(sys.argv) != 1:
+if len(sys.argv) != 2:
     print 'python batchToCSV.py [feature_name]'
     print 
     print '  e.g., feature_name: rgba_gist+rgba_phog'
