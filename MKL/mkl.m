@@ -125,10 +125,11 @@ function [] = mkl(eid)
 
     end;
 
-    disp(['> saving to ', save_path]);
+    
     % log `C`, `ypred` and `bc`
     save_fn = sprintf('%s.MKL.mat',emotions{eid});
     save_path = fullfile(LOG_PATH, save_fn);
+    disp(['> saving to ', save_path]);
     save(save_path, 'C', 'ypred', 'bc', 'time');
 
 
