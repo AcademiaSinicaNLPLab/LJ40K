@@ -35,9 +35,11 @@ function [] = mkl(eid)
     % ------------------------------------------------------
 
     % Read all emotions
+    disp('> load emotions');
     emotions = ReadStrCSV(fullfile(PROJECT_ROOT, 'exp/data/emotion.csv'));
+
     % Set features
-    features = {image_feature_name, text_feature_name}
+    features = {image_feature_name, text_feature_name};
 
     % rgba_gist+rgba_phog.K.sad.tr.csv
     K_image_tr_fn = sprintf('%s.K.%s.tr.csv', features{1}, emotions{eid});
@@ -45,7 +47,7 @@ function [] = mkl(eid)
     K_text_tr_fn = sprintf('%s.K.%s.tr.csv', features{2}, emotions{eid});
 
     % 'rgba_gist+rgba_phog.y.sad.tr.csv'
-    y_tr_fn = sprintf('%s.y.%s.tr.csv', features{2}, emotions{eid});
+    y_tr_fn = sprintf('%s.y.%s.tr.csv', features{1}, emotions{eid});
 
     % 'rgba_gist+rgba_phog.K.sad.dev.csv'
     K_image_te_fn = sprintf('%s.K.%s.dev.csv', features{1}, emotions{eid});
@@ -59,37 +61,48 @@ function [] = mkl(eid)
     %  Load data
     % ------------------------------------------------------
     % % load K (train)
+    disp('> load K_image_tr');
     K_image_tr = csvread(fullfile(image_feature_root, K_image_tr_fn));
+
+    disp('> load K_text_tr');
     K_text_tr = csvread(fullfile(text_feature_root, K_text_tr_fn));
 
     % % build K (train)
     % % the size of K_tr: (1440 x 1440 x 2)
+    disp('> build K_tr');
     K_tr = zeros(size(K_image_tr,1),size(K_image_tr,2),2);
     K_tr(:,:,1) = K_image_tr;
     K_tr(:,:,2) = K_text_tr;
 
     % % load y (train)
     % % the size of y_tr: (1440 x 1)
+    disp('> load y_tr');
     y_tr = csvread(fullfile(image_feature_root, y_tr_fn));
 
     % % load K (test)
+    disp('> load K_image_te');
     K_image_te = csvread(fullfile(image_feature_root, K_image_te_fn));
+    disp('> load K_text_te');
     K_text_te = csvread(fullfile(text_feature_root, K_text_te_fn));
 
     % % build K (test)
     % % the size of K_te: (1440 x 160 x 2)
+    disp('> build K_te');
     K_te = zeros(size(K_image_te,1),size(K_image_te,2),2);
     K_te(:,:,1) = K_image_te;
     K_te(:,:,2) = K_text_te;
 
     % % load y (test)
     % % the size of y_te: (1440 x 1)
+    disp('> load y_te');
     y_te = csvread(fullfile(image_feature_root, y_te_fn));
 
     % ------------------------------------------------------
     %  Learning
     % ------------------------------------------------------
-    ypred = cell(1, size(C,2))
+    ypred = cell(1, size(C,2));
+
+    disp('> start learning...');
 
     for i=1: size(C,2)
 
@@ -112,6 +125,7 @@ function [] = mkl(eid)
 
     end;
 
+    disp(['> saving to ', save_path]);
     % log `C`, `ypred` and `bc`
     save_fn = sprintf('%s.MKL.mat',emotions{eid});
     save_path = fullfile(LOG_PATH, save_fn);
