@@ -7,7 +7,7 @@ close all
 
 nbiter=1;
 ratio=0.5;
-data='ionosphere'
+mat='ionosphere';
 C = [100];
 verbose=1;
 
@@ -65,39 +65,52 @@ variablevec={'all' 'single' 'all' 'single'};
 
 
 classcode=[1 -1];
-load([data ]);
-[nbdata,dim]=size(x);
 
-nbtrain=floor(nbdata*ratio);
+data = load([mat ]);
+% samples: 351
+% features: 33
+[samples,features]=size(data.x);
+
+% nbtrain: 175
+nbtrain=floor(samples*ratio);
+
 rand('state',0);
 
 for i=1: nbiter
     i
-    [xapp, yapp, xtest, ytest, indice] = CreateDataAppTest(x, y, nbtrain,classcode);
+    % xapp:  175 x 33
+    % yapp:  175 x 1
+    % xtest: 176 x 33
+    % ytest: 176 x 1
+    [xapp, yapp, xtest, ytest, indice] = CreateDataAppTest(data.x, data.y, nbtrain, classcode);
+
+    % normalization
     [xapp, xtest] = normalizemeanstd(xapp, xtest);
-    [kernel, kerneloptionvec, variableveccell] = CreateKernelListWithVariable(variablevec,dim,kernelt,kerneloptionvect);
+
+
+    [kernel, kerneloptionvec, variableveccell] = CreateKernelListWithVariable(variablevec,features,kernelt,kerneloptionvect);
+
+    % Weight: 1 x 442
+    % InfoKernel: 1x442 struct array with fields:
+    %               kernel
+    %               kerneloption
+    %               variable
+    %               Weigth
     [Weight,InfoKernel] = UnitTraceNormalization(xapp, kernel, kerneloptionvec, variableveccell);
+
+    % K : 175 x 175 x 442
     K = mklkernel(xapp, InfoKernel, Weight, options);
-
-
     
-    %------------------------------------------------------------------
-    % 
-    %  K is a 3-D matrix, where K(:,:,i)= i-th Gram matrix 
-    %
-    %------------------------------------------------------------------
-    % or K can be a structure with uses a more efficient way of storing
-    % the gram matrices
-    %
-    % K = build_efficientK(K);
-    
-    tic
+    % tic
     [beta,w,b,posw,story(i),obj(i)] = mklsvm(K, yapp, C, options, verbose);
-    timelasso(i) = toc
+    % timelasso(i) = toc
 
+    % Kt: 176 x 62
     Kt = mklkernel(xtest, InfoKernel, Weight, options, xapp(posw,:), beta);
-    ypred = Kt*w+b;
 
+    % ypred = 176 x 1
+    ypred = Kt*w+b;
+    
     bc(i) = mean(sign(ypred)==ytest)
 
 end;%
