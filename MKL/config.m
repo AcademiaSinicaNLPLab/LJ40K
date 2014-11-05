@@ -2,6 +2,12 @@
 PROJECT_ROOT='/home/lwkulab/maxis/projects/LJ40K';
 SimpleMKL_PATH='/tools/SimpleMKL';
 
+LOG_PATH='/home/lwkulab/maxis/projects/LJ40K/MKL/log';
+
+if not(exist(LOG_PATH, 'dir'))
+    mkdir(LOG_PATH);
+end
+
 % `cost` in SVM
 C=[0.01, 0.1, 1, 10, 100];
 

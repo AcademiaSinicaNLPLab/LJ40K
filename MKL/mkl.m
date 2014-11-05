@@ -16,7 +16,7 @@ function [] = mkl(eid)
     % Path to SimpleMKL package
     addpath(SimpleMKL_PATH);
     addpath(fullfile(PROJECT_ROOT,'MKL'));
-    
+
     % ------------------------------------------------------
     %  Set Pathes
     % ------------------------------------------------------
@@ -113,8 +113,9 @@ function [] = mkl(eid)
     end;
 
     % log `C`, `ypred` and `bc`
-    save_fn = sprintf('%s.mkl.mat',emotions{eid});
-    save(save_fn, 'C', 'ypred', 'bc', 'time');
+    save_fn = sprintf('%s.MKL.mat',emotions{eid});
+    save_path = fullfile(LOG_PATH, save_fn);
+    save(save_path, 'C', 'ypred', 'bc', 'time');
 
 
 
