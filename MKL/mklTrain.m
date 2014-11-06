@@ -8,7 +8,7 @@
 % mkl(1)
 %
 % 
-function [] = mkl(eid)
+function [] = mklTrain(eid)
 
     % change config in config.m
     config();
@@ -37,6 +37,15 @@ function [] = mkl(eid)
     % Read all emotions
     disp('> load emotions');
     emotions = ReadStrCSV(fullfile(PROJECT_ROOT, 'exp/data/emotion.csv'));
+
+    % assembly save path
+    % exit if the final file exists
+    save_fn = sprintf('%s.MKL.mat',emotions{eid});
+    save_path = fullfile(LOG_PATH, save_fn);
+    if exist(save_path)
+        disp(['file ', save_path, ' exists'])
+        exit
+    end
 
     % Set features
     features = {image_feature_name, text_feature_name};
@@ -127,8 +136,6 @@ function [] = mkl(eid)
 
     
     % log `C`, `ypred` and `bc`
-    save_fn = sprintf('%s.MKL.mat',emotions{eid});
-    save_path = fullfile(LOG_PATH, save_fn);
     disp(['> saving to ', save_path]);
     save(save_path, 'C', 'ypred', 'bc', 'time');
 
