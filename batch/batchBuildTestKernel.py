@@ -91,8 +91,7 @@ if __name__ == '__main__':
         K_te = rbf.build( (X_tr, X_te) )
 
         ## save
-        ## rgba_gist+rgba_phog.Xy.happy.train.npz
-        feature, xy, emotion, dtype, ext = npz_fn.split('.')
+        ## rgba_gist+rgba_phog.Xy.happy.test.npz
         out_test_fn = "%s.Ky.%s.test.npz" % (feature, emotion)
         
         rbf.save(os.path.join(out_dir, out_test_fn), K_tr=K_te, y_tr=y_te)
