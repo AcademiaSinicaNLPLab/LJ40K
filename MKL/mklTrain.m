@@ -5,7 +5,7 @@
 %   
 % Example
 % =======
-% mkl(1)
+% mklTrain(1)
 %
 % 
 function [] = mklTrain(eid)
