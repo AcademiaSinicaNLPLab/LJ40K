@@ -110,6 +110,11 @@ function [] = mklTrain(eid)
     %  Learning
     % ------------------------------------------------------
     ypred = cell(1, size(C,2));
+    betas = cell(1, size(C,2));
+    posws = cell(1, size(C,2));
+    ws = cell(1, size(C,2));
+    storys = cell(1, size(C,2));
+    objs = cell(1, size(C,2));
 
     disp('> start learning...');
 
@@ -121,12 +126,17 @@ function [] = mklTrain(eid)
         [beta, w, b, posw, story(i), obj(i)] = mklsvm(K_tr, y_tr, C(i), options, verbose);
         time(i) = toc;
 
+        %% record parameters
+        betas{i} = beta;
+        ws{i} = w;
+        bs{i} = b;
+        posws{i} = posw;
+
         % compute Kt (160 x 1189)
         Kt = K_te(:,:,1)*beta(1) + K_te(:,:,2)*beta(2);
         Kt = Kt(posw,:)';
 
         % predict
-
         ypred{i} = Kt*w+b;
 
         % evaluation
@@ -137,7 +147,5 @@ function [] = mklTrain(eid)
     
     % log `C`, `ypred` and `bc`
     disp(['> saving to ', save_path]);
-    save(save_path, 'C', 'ypred', 'bc', 'time');
-
-
+    save(save_path, 'C', 'ypred', 'bc', 'time', 'story', 'obj', 'betas', 'ws', 'bs', 'posws');
 
