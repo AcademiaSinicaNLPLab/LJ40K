@@ -2,14 +2,15 @@
 PROJECT_ROOT='/home/lwkulab/maxis/projects/LJ40K';
 SimpleMKL_PATH='/tools/SimpleMKL';
 
-LOG_PATH='/home/lwkulab/maxis/projects/LJ40K/MKL/log';
+LOG_PATH='/home/lwkulab/maxis/projects/LJ40K/MKL/log_full';
+EVAL_PATH='/home/lwkulab/maxis/projects/LJ40K/MKL/eval';
 
 if not(exist(LOG_PATH, 'dir'))
     mkdir(LOG_PATH);
 end
 
 % `cost` in SVM
-C=[0.01, 0.1, 1, 10, 100];
+C=[0.01, 0.1, 0.5, 1, 2, 4, 10, 50, 100, 150, 200];
 
 % happy, _happy -> 1, -1
 classcode=[1 -1];
