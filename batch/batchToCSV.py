@@ -3,16 +3,19 @@ import numpy as np
 import os, sys
 
 
-if len(sys.argv) != 2:
-    print 'python batchToCSV.py [feature_name]'
+if len(sys.argv) != 3:
+    print 'python batchToCSV.py [feature_name] [root]'
     print 
     print '  e.g., feature_name: rgba_gist+rgba_phog'
+    print '        python batchToCSV.py TFIDF+keyword ../exp/data/'
     exit(-1)
 # feature = 'rgba_gist+rgba_phog'
-feature = sys.argv[1]
 
-Ky_root = '../exp/train/'+feature+'/Ky/'
-csv_root = '../exp/train/'+feature+'/csv/'
+feature = sys.argv[1]
+root = sys.argv[2]
+
+Ky_root = os.path.join(root, feature, 'Ky')
+csv_root = os.path.join(root, feature, 'csv')
 
 classcode = [1, -1]
 
@@ -35,6 +38,8 @@ for npz in npzs:
         dtype = 'dev'
     elif npz.endswith('.train.npz'):
         dtype = 'tr'
+    elif npz.endswith('.test.npz'):
+        dtype = 'te'
     else:
         continue
 
