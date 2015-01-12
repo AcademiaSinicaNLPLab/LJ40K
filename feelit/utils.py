@@ -249,16 +249,22 @@ def devide(X, part, shuffle=False):
         random.shuffle(X)
 
     return (X[:endpoint], X[endpoint:])
-        
+      
+def random_idx(length, topk):
+    import random
+    # generate index for random
+    all_indexes = range(length)
+    random.shuffle(all_indexes)
+    return (all_indexes[:topk], all_indexes[topk:])
 
-def RandomSample(arrays, dim=0.1, index_file=None):
+def RandomSample(arrays, dim=0.1, delete_index=None):
     """
     Usage
     =====
         >> from feelit.utils import RandomSample
         >> (_X, _y) = RandomSample((X, y), 0.5) ## ratio version
         >> (_X, _y) = RandomSample((X, y), 100) ## set target dimension directly
-        >> (_X, _y) = RandomSample((X, y), index_file="data/idxs.pkl") ## specify a certain list of indexes to be deleted
+        >> (_X, _y) = RandomSample((X, y), delete_index="data/idxs.pkl") ## specify a certain list of indexes to be deleted
 
     Parameters
     ==========
@@ -292,9 +298,16 @@ def RandomSample(arrays, dim=0.1, index_file=None):
 
         delete_indexes = []
 
-        if index_file:
-            if os.path.exists(index_file):
-                delete_indexes = pickle.load(open(index_file))
+        if delete_index:
+            if type(delete_index) == str:
+                if os.path.exists(delete_index):
+                    delete_indexes = pickle.load(open(delete_index))
+            elif type(delete_index) == list:
+                delete_indexes = delete_index
+            elif type(delete_index) == np.ndarray:
+                delete_indexes = list(delete_index)
+            else:
+                pass
 
         if not delete_indexes:
             # get number of samples
