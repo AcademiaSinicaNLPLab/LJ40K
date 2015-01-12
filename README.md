@@ -3,6 +3,10 @@ LJ40K
 
 Python modules for analyzing LJ40K emotion data
 
+## System flow
+
+![feelit flow](https://cloud.githubusercontent.com/assets/1659204/5698196/fd3873e8-9a42-11e4-803e-81c59a12c143.png)
+
 
 ## feelit/features.py
 
