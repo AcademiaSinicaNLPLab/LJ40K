@@ -30,7 +30,6 @@ end;
 if length(n_train)~=2
     error('parameter n_train must have two elements.');
 else
-keyboard 
     n_train_pos = n_train(1);
     n_train_neg = n_train(2);
     idx_pos = find(y==classcode(1));

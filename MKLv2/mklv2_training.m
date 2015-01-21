@@ -1,4 +1,5 @@
-function [y_predict, bc, time, sigma,  Alpsup, w0, pos, history, obj] = mklv2_training(data, mkl_options, kernel_param, svm_param)
+%function [y_predict, bc, time, sigma,  Alpsup, w0, pos, history, obj] = mklv2_training(data, mkl_options, kernel_param, svm_param)
+function [] = mklv2_training(data, mkl_options, kernel_param, svm_param)
 
 %{
 
@@ -41,39 +42,56 @@ if [n_data, dim] ~= size(data.X_image)
     error('unmatched dimensions of text and image');
 end
 
-disp(sprintf('n_data = %d', n_data));
-disp(sprintf('dim = %d', dim));
+disp(sprintf('n_data = %ld', n_data));
+disp(sprintf('dim = %ld', dim));
 
+% the input data would be half positive and half negative
+% we extract 90% of each polarity to form the training set
+% and 10% to form the testing set
 n_pos_samples = floor(0.9*n_data/2);
 n_neg_samples = n_pos_samples;
-keyboard%
-% build text kernels, 90% for training, 10% for development
-[X_text_train, y_text_train, X_text_dev, y_text_dev] = mklv2_separate_samples(data.X_text, data.y_text, [n_pos_samples, n_neg_samples]);
+
+
+% generate kernel option for both text and image
+[kernel_type_vec, kernel_option_vec, kernel_var_vec_cell] = ...
+    CreateKernelListWithVariable(kernel_param.variable_vec, dim, kernel_param.type_vec, kernel_param.option_vec);
 
 
 % build text kernels
-[X_image_train, y_image_train, X_image_test, y_image_test] = mklv2_separate_samples(data.X_image, data.y_image, [n_pos_samples, n_neg_samples]);
+[X_text_train, y_text_train, X_text_dev, y_text_dev] = ...
+    mklv2_separate_samples(data.X_text, data.y_text, [n_pos_samples, n_neg_samples]);
+disp(sprintf('%ld text samples are separated into %ld training samples and %ld development samples', ...
+    n_data, size(y_text_train, 1), size(y_text_dev, 1)));
+
+[X_text_train, X_text_dev] = normalizemeanstd(X_text_train, X_text_dev);
+[weight_text, info_kernel_text] = ...
+    UnitTraceNormalization(X_text_train, kernel_type_vec, kernel_option_vec, kernel_var_vec_cell);
+K_text = mklkernel(X_text_train, info_kernel_text, weight_text, mkl_options);
+disp(sprintf('weight_text is %ld x %ld', size(weight_text, 1), size(weight_text, 2)));
+disp(sprintf('info_kernel_text is %ld x %ld', size(info_kernel_text, 1), size(info_kernel_text, 2)));
+disp(sprintf('K_text is %ld x %ld x %ld', size(K_text, 1), size(K_text, 2), size(K_text,3))); 
+
+
+% build image kernels
+[X_image_train, y_image_train, X_image_dev, y_image_dev] = ...
+    mklv2_separate_samples(data.X_image, data.y_image, [n_pos_samples, n_neg_samples]);
+disp(sprintf('%ld image samples are separated into %ld training samples and %ld development samples', ...
+    n_data, size(y_image_train, 1), size(y_image_dev, 1)));
+
+[X_image_train, X_image_dev] = normalizemeanstd(X_image_train, X_image_dev);
+[weight_image, info_kernel_image] = ...
+    UnitTraceNormalization(X_image_train, kernel_type_vec, kernel_option_vec, kernel_var_vec_cell);
+K_image = mklkernel(X_image_train, info_kernel_image, weight_image, mkl_options);
+disp(sprintf('weight_image is %ld x %ld', size(weight_image, 1), size(weight_image, 2)));
+disp(sprintf('info_kernel_image is %ld x %ld', size(info_kernel_image, 1), size(info_kernel_text, 2)));
+disp(sprintf('K_image is %ld x %ld x %ld', size(K_image, 1), size(K_image, 2), size(K_image,3))); 
+
+
+% pile up two kinds of kernels
 
 
 
 %{
-
-% normalization
-[X_training, X_dev] = normalizemeanstd(training_samples, dev_samples);
-[kernel, kernel_option_vec, variable_vec_cell] = ...
-    CreateKernelListWithVariable(kernel_param.type_vec, dim, kernel_param.kernel_type, kernel_param.option_vec);
-
-% InfoKernel: 
-%               kernel
-%               kerneloption
-%               variable
-%               Weigth
-[weight, info_kernel] = UnitTraceNormalization(xapp, kernel, kernel_option_vec, variable_vec_cell);
-
-disp(sprintf('kernel is %d x %d', size(kernel, 1), size(kernel, 2)));
-
-K_multiple = 
-
 
 for i=1: nbiter
     i
