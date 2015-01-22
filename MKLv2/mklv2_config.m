@@ -70,5 +70,5 @@ svm_param_C = 1;
 %                               Misc
 %------------------------------------------------------------------------
 classcode = [1 -1];;
-text_train_sample_dir = '~\\projects\\data\\MKLv2\\200samples\\train\\TFIDF+keyword_eachfromMongo\\160_Xy';
-image_train_sample_dir = '~\\projects\\data\\MKLv2\\200samples\\train\\rgba_gist+rgba_phog_fromfile\\160_Xy';
+text_train_sample_dir = '~/projects/data/MKLv2/200samples/train/TFIDF+keyword_eachfromMongo/160_Xy';
+image_train_sample_dir = '~/projects/data/MKLv2/200samples/train/rgba_gist+rgba_phog_fromfile/160_Xy';
