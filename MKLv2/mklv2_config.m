@@ -63,9 +63,12 @@ kernel_param.variable_vec = {'all'};
 %------------------------------------------------------------------------
 %                   Building the SVM parameters
 %------------------------------------------------------------------------
-svm_param.C = [0.1 0.5 1 10 100];
+%svm_param.C = [0.1 0.5 1 10 100];
+svm_param_C = 1;
 
 %------------------------------------------------------------------------
 %                               Misc
 %------------------------------------------------------------------------
 classcode = [1 -1];;
+text_train_sample_dir = '~\\projects\\data\\MKLv2\\200samples\\train\\TFIDF+keyword_eachfromMongo\\160_Xy';
+image_train_sample_dir = '~\\projects\\data\\MKLv2\\200samples\\train\\rgba_gist+rgba_phog_fromfile\\160_Xy';
