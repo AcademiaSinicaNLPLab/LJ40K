@@ -91,39 +91,6 @@ disp(sprintf('info_kernel_image is %ld x %ld', size(info_kernel_image, 1), size(
 disp(sprintf('K_image_train is %ld x %ld x %ld\n', size(K_image_train, 1), size(K_image_train, 2), size(K_image_train,3))); 
 
 
-%{}
-% generate kernel option for both text and image
-[text_kernel_type_vec, text_kernel_option_vec, text_kernel_var_vec_cell] = ...
-    CreateKernelListWithVariable(kernel_param.variable_vec, X_text_dim, kernel_param.type_vec, kernel_param.option_vec);
-[image_kernel_type_vec, image_kernel_option_vec, image_kernel_var_vec_cell] = ...
-    CreateKernelListWithVariable(kernel_param.variable_vec, X_image_dim, kernel_param.type_vec, kernel_param.option_vec);
-
-
-%------------------------------------------------------------------
-%                       build text kernels
-%------------------------------------------------------------------
-[X_text_train, X_text_dev] = normalizemeanstd(X_text_train, X_text_dev);
-[weight_text, info_kernel_text] = ...
-    UnitTraceNormalization(X_text_train, text_kernel_type_vec, text_kernel_option_vec, text_kernel_var_vec_cell);
-K_text_train = mklkernel(X_text_train, info_kernel_text, weight_text, mkl_options);
-disp(sprintf('weight_text is %ld x %ld', size(weight_text, 1), size(weight_text, 2)));
-disp(sprintf('info_kernel_text is %ld x %ld', size(info_kernel_text, 1), size(info_kernel_text, 2)));
-disp(sprintf('K_text_train is %ld x %ld x %ld\n', size(K_text_train, 1), size(K_text_train, 2), size(K_text_train,3))); 
-
-
-%------------------------------------------------------------------
-%                       build image kernels
-%------------------------------------------------------------------
-[X_image_train, X_image_dev] = normalizemeanstd(X_image_train, X_image_dev);
-[weight_image, info_kernel_image] = ...
-    UnitTraceNormalization(X_image_train, image_kernel_type_vec, image_kernel_option_vec, image_kernel_var_vec_cell);
-K_image_train = mklkernel(X_image_train, info_kernel_image, weight_image, mkl_options);
-disp(sprintf('weight_image is %ld x %ld', size(weight_image, 1), size(weight_image, 2)));
-disp(sprintf('info_kernel_image is %ld x %ld', size(info_kernel_image, 1), size(info_kernel_text, 2)));
-disp(sprintf('K_image_train is %ld x %ld x %ld\n', size(K_image_train, 1), size(K_image_train, 2), size(K_image_train,3))); 
-
-%}
-
 %------------------------------------------------------------------
 %                   pile up two kinds of kernels
 %------------------------------------------------------------------
