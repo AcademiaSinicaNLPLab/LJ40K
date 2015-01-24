@@ -2,9 +2,10 @@
 %
 %
 
-clear all
-close all
 
+PROJECT_ROOT = '/home/doug919/projects/github_repo/LJ40K/MKLv2';
+DATA_ROOT = '/home/doug919/projects/data/MKLv2';
+OUTPUT_PATH = '/home/doug919/projects/data/MKLv2/output';
 addpath('/tools/SimpleMKL');
 addpath('/tools/SVM-KM');
 
@@ -56,19 +57,20 @@ options.efficientkernel = 0;         % use efficient storage of kernels
 %------------------------------------------------------------------------
 %                   Building the kernels parameters
 %------------------------------------------------------------------------
-kernel_param.type_vec = {'gaussian'};
-kernel_param.option_vec = {[0.5 1 5 10 20]};
-kernel_param.variable_vec = {'all'};
+kernel_param.type_vec = {'gaussian' 'gaussian'};
+%kernel_param.option_vec = {[0.0001 0.0005 0.001 0.01 0.1 0.5 1 5 10 20]};
+kernel_param.option_vec = {[0.1 1 10 15 20] [0.1 1 10 15 20]};
+kernel_param.variable_vec = {'all' 'single'};
 
 %------------------------------------------------------------------------
 %                   Building the SVM parameters
 %------------------------------------------------------------------------
-%svm_param.C = [0.1 0.5 1 10 100];
-svm_param_C = 1;
+svm_param_C = [0.001 0.003 0.1 0.3 1 3 10 30 100 1000];
+%svm_param_C = 1;
 
 %------------------------------------------------------------------------
 %                               Misc
 %------------------------------------------------------------------------
 classcode = [1 -1];;
-text_train_sample_dir = '~/projects/data/MKLv2/200samples/train/TFIDF+keyword_eachfromMongo/160_Xy';
-image_train_sample_dir = '~/projects/data/MKLv2/200samples/train/rgba_gist+rgba_phog_fromfile/160_Xy';
+% get emotion vector located at data root folder
+emotions = util_read_csv(fullfile(DATA_ROOT, 'emotion.csv'));

@@ -1,6 +1,10 @@
 
 mklv2_config;
 
+%TODO: improve input selection
+text_train_sample_dir = '~/projects/data/MKLv2/200samples/train/TFIDF+keyword_eachfromMongo/160_Xy';
+image_train_sample_dir = '~/projects/data/MKLv2/200samples/train/rgba_gist+rgba_phog_fromfile/160_Xy';
+
 emotions = {'accomplished'};
 features = {'TFIDF+keyword_eachfromMongo', 'rgba_gist+rgba_phog_fromfile'};
 filepath_text_data = sprintf('%s/%s.Xy.%s.train.mat', text_train_sample_dir, features{1}, emotions{1});
@@ -19,7 +23,7 @@ data.y_image = y;
 %data.y_image = [1; 1; 1; -1; -1; -1];
 
 %[y_predict, bc, time, sigma,  Alpsup, w0, pos, history, obj] = mklv2_training(data, options, kernel_param, svm_param);
-mklv2_training(data, options, kernel_param, svm_param_C);
+[y_predict, bc, time, sigma,  Alpsup, w0, pos, history, obj] = mklv2_training(data, options, kernel_param, svm_param_C(1));
 
 
-%exit;
+keyboard;

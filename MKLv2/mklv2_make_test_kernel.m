@@ -11,7 +11,7 @@ ind = find(sigma);
 K_test = zeros(size(X_text_dev,1),size(X_text_sv,1));
 for i=1:length(ind);
     layer_idx=ind(i); 
-    %keyboard;
+    keyboard;
     if layer_idx<=size(sigma, 2)/2
         Kr = svmkernel(X_text_dev(:,info_kernel(layer_idx).variable), info_kernel(layer_idx).kernel, ...
             info_kernel(layer_idx).kerneloption, X_text_sv(:,info_kernel(layer_idx).variable));

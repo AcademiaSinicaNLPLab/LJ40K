@@ -1,5 +1,4 @@
-%function [y_predict, bc, time, sigma,  alp_sup, w0, pos, history, obj] = mklv2_training(data, mkl_options, kernel_param, svm_param_C)
-function [] = mklv2_training(data, mkl_options, kernel_param, svm_param_C)
+function [y_predict, bc, time, sigma,  alp_sup, w0, pos, history, obj] = mklv2_training(data, mkl_options, kernel_param, svm_param_C)
 
 %{
 
@@ -130,8 +129,6 @@ disp(sprintf('K_dev is %ld x %ld\n', size(K_dev, 1), size(K_dev, 2)));
 %------------------------------------------------------------------
 %                     Development Evaluation
 %------------------------------------------------------------------
-ypred = K_dev * alp_sup + w0;
-bc = mean(sign(ypred)==y_text_dev)
-
-keyboard;
+y_predict = K_dev * alp_sup + w0;
+bc = mean(sign(y_predict)==y_text_dev)
 
