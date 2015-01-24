@@ -57,16 +57,21 @@ options.efficientkernel = 0;         % use efficient storage of kernels
 %------------------------------------------------------------------------
 %                   Building the kernels parameters
 %------------------------------------------------------------------------
-kernel_param.type_vec = {'gaussian' 'gaussian'};
-%kernel_param.option_vec = {[0.0001 0.0005 0.001 0.01 0.1 0.5 1 5 10 20]};
-kernel_param.option_vec = {[0.1 1 10 15 20] [0.1 1 10 15 20]};
-kernel_param.variable_vec = {'all' 'single'};
+% param for E11
+%kernel_param.type_vec = {'gaussian' 'gaussian'};
+%kernel_param.option_vec = {[0.1 1 10 15 20] [0.1 1 10 15 20]};
+%kernel_param.variable_vec = {'all' 'single'};
+% param for E12
+%kernel_param.type_vec = {'gaussian'};
+%kernel_param.option_vec = {[0.1 1 10 15 20]};
+%kernel_param.variable_vec = {'all'};
 
 %------------------------------------------------------------------------
 %                   Building the SVM parameters
 %------------------------------------------------------------------------
-svm_param_C = [0.001 0.003 0.1 0.3 1 3 10 30 100 1000];
-%svm_param_C = 1;
+% param for E11
+% param for E12
+svm_param_C = [0.1 1 10 100 300 500 1000];
 
 %------------------------------------------------------------------------
 %                               Misc
