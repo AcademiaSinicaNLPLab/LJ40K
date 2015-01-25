@@ -54,6 +54,11 @@ for i=1:length(features)
         result.svm_C{j} = svm_param_C(j);
         [result.y_predict{j}, result.bc{j}, result.time{j}, result.sigma{j},  result.alp_sup{j}, result.w0{j}, result.sv_pos{j}, result.history{j}, result.obj{j}] = ...
             mklv2_train_one_feature(K_train, weight, info_kernel, Xnorm_train, y_train, Xnorm_dev, y_dev, options, kernel_param, svm_param_C(j));
+
+        % display result
+        disp(sprintf('subexp idx = %d', j));
+        disp('show SIGMA:');
+        result.sigma{j}
     end
 
     file_prefix = sprintf('%s/%s_%s_%s_%s', OUTPUT_PATH, output_prefix, train_data_tag, emotions{emotion_idx}, features{i});

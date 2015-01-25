@@ -21,9 +21,15 @@ eval_result.bc = cell(1, length(max_idx));
 for i=1:length(max_idx)
     % build test kernel
     disp(sprintf('evaluating the result of index %d ...', max_idx(i)));
+
     K_test = mklkernel(Xnorm_test, info_kernel, weight, options, Xnorm_train(result.sv_pos{max_idx(i)}, :), result.sigma{max_idx(i)});
     disp(sprintf('K_test is %ld x %ld\n', size(K_test, 1), size(K_test, 2))); 
+    
+    % display selected param
+    disp('show SIGMA:');
+    result.sigma{max_idx(i)}
 
+    % eval
     eval_result.idx{i} = max_idx(i);
     eval_result.y_predict{i} = K_test * result.alp_sup{max_idx(i)} + result.w0{max_idx(i)};
     eval_result.bc{i} = mean(sign(eval_result.y_predict{i})==y_test);
