@@ -1,4 +1,4 @@
-function [] = mklv2_exp_1(emotion_idx, output_prefix, features)
+function [] = mklv2_exp_1(emotion_idx, output_prefix, features, train_data_root, test_data_root, train_data_tag, test_data_tag)
 
 if nargin < 2
     output_prefix='Exp1'
@@ -22,7 +22,7 @@ for i=1:length(features)
     result.obj = cell(1, length(svm_param_C));
 
     %load X, y
-    data_file_path = fullfile(DATA_ROOT, '200sample_4/train', features{i}, '160_Xy', sprintf('%s.Xy.%s.train.mat', features{i}, emotions{emotion_idx}));
+    data_file_path = fullfile(train_data_root, features{i}, train_data_tag, sprintf('%s.%s.%s.train.mat', features{i}, train_data_tag, emotions{emotion_idx}));
     disp(sprintf('==> load from %s', data_file_path));
     load(data_file_path);
 
@@ -56,13 +56,13 @@ for i=1:length(features)
             mklv2_train_one_feature(K_train, weight, info_kernel, Xnorm_train, y_train, Xnorm_dev, y_dev, options, kernel_param, svm_param_C(j));
     end
 
-    file_prefix = sprintf('%s/%s_%s_%s', OUTPUT_PATH, output_prefix, emotions{emotion_idx}, features{i});
+    file_prefix = sprintf('%s/%s_%s_%s_%s', OUTPUT_PATH, output_prefix, train_data_tag, emotions{emotion_idx}, features{i});
     training_file_path = sprintf('%s_train_result.mat', file_prefix);
     disp(sprintf('<== save to %s', training_file_path));
     save(training_file_path, 'result');
 
     % evaluation
-    test_data_path = fullfile(DATA_ROOT, '200sample_4/test', features{i}, '20p20n_Xy', sprintf('%s.20p20n_Xy.%s.test.mat', features{i}, emotions{emotion_idx}));
+    test_data_path = fullfile(test_data_root, features{i}, test_data_tag, sprintf('%s.%s.%s.test.mat', features{i}, test_data_tag, emotions{emotion_idx}));
     eval_result = mklv2_exp_1_eval(X_train, Xnorm_train, info_kernel, weight, result, options, test_data_path)
 
     eval_file_path = sprintf('%s_eval_result.mat', file_prefix);

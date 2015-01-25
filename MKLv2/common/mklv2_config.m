@@ -57,20 +57,22 @@ options.efficientkernel = 0;         % use efficient storage of kernels
 %------------------------------------------------------------------------
 %                   Building the kernels parameters
 %------------------------------------------------------------------------
-% param for E11
-kernel_param.type_vec = {'gaussian' 'gaussian'};
-kernel_param.option_vec = {[0.1 1 10 15 20] [0.1 1 10 15 20]};
-kernel_param.variable_vec = {'all' 'single'};
+% param for E11 (exhaust memory for 20000 features)
+%kernel_param.type_vec = {'gaussian' 'gaussian'};
+%kernel_param.option_vec = {[0.1 1 10 15 20] [0.1 1 10 15 20]};
+%kernel_param.variable_vec = {'all' 'single'};
 % param for E12
-%kernel_param.type_vec = {'gaussian'};
-%kernel_param.option_vec = {[0.1 1 10 15 20]};
-%kernel_param.variable_vec = {'all'};
+%kernel_param.type_vec = {'gaussian' 'gaussian'};
+%kernel_param.option_vec = {[0.1 1 10 15 20] [0.1 1 10 15 20]};
+%kernel_param.variable_vec = {'all' 'random'};
+% param for E13 (total 1*5*10=50 kernels)
+kernel_param.type_vec = {'gaussian' 'gaussian' 'gaussian' 'gaussian' 'gaussian' 'gaussian' 'gaussian' 'gaussian' 'gaussian' 'gaussian'};
+kernel_param.option_vec = {[0.1 1 10 15 20] [0.1 1 10 15 20] [0.1 1 10 15 20] [0.1 1 10 15 20] [0.1 1 10 15 20] [0.1 1 10 15 20] [0.1 1 10 15 20] [0.1 1 10 15 20] [0.1 1 10 15 20] [0.1 1 10 15 20]};
+kernel_param.variable_vec = {'all' 'random' 'random' 'random' 'random' 'random' 'random' 'random' 'random' 'random'};
 
 %------------------------------------------------------------------------
 %                   Building the SVM parameters
 %------------------------------------------------------------------------
-% param for E11
-% param for E12
 svm_param_C = [0.1 1 10 100 300 500 1000];
 
 %------------------------------------------------------------------------

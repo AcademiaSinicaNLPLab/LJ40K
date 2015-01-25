@@ -5,9 +5,14 @@ from subprocess import call
 
 def run(eid):
     
-    #cmd = 'matlab -r "mkl(%d)"' % (eid)
-    output_prefix = 'Thread%d_E1' % (eid)
-    cmd = 'matlab -r "mklv2_exp_1(%d, \'%s\', {\'keyword\', \'image_rgba_gist\', \'image_rgba_phog\', \'TFIDF\'});exit;" > log/log_tread_%d' % (eid, output_prefix, eid)
+    train_data_root = '/home/doug919/projects/data/MKLv2/2000samples_4/train'
+    test_data_root = '/home/doug919/projects/data/MKLv2/2000samples_4/test'
+    train_data_tag = '800p800n_Xy'
+    test_data_tag = '200p200n_Xy'
+    output_prefix = 'Thread%d_E1_800' % (eid)
+
+    cmd = 'matlab -r "mklv2_exp_1(%d, \'%s\', {\'keyword\', \'image_rgba_gist\', \'image_rgba_phog\', \'TFIDF\'}, \'%s\', \'%s\', \'%s\', \'%s\');exit;" > log/log_tread_%d' % \
+        (eid, output_prefix, train_data_root, test_data_root, train_data_tag, test_data_tag, eid)
 
     print '> run:',cmd
     call(cmd, shell=True)
