@@ -65,7 +65,6 @@ disp(sprintf('weight is %ld x %ld', size(weight, 1), size(weight, 2)));
 disp(sprintf('info_kernel is %ld x %ld', size(info_kernel, 1), size(info_kernel, 2)));
 disp(sprintf('K_train is %ld x %ld x %ld\n', size(K_train, 1), size(K_train, 2), size(K_train,3))); 
 
-
 % init result
 result.svm_C = cell(1, length(svm_param_C));
 result.y_predict = cell(1, length(svm_param_C));
@@ -78,13 +77,14 @@ result.sv_pos = cell(1, length(svm_param_C));
 result.history = cell(1, length(svm_param_C));
 result.obj = cell(1, length(svm_param_C));
 
+
 %------------------------------------------------------------------
 %                           Training
 %------------------------------------------------------------------
 for j=1:length(svm_param_C)        
     result.svm_C{j} = svm_param_C(j);
     [result.y_predict{j}, result.bc{j}, result.time{j}, result.sigma{j},  result.alp_sup{j}, result.w0{j}, result.sv_pos{j}, result.history{j}, result.obj{j}] = ...
-        mklv2_train_one_feature(K_train, weight, info_kernel, Xnorm_train, y_train, Xnorm_dev, y_dev, options, kernel_param, svm_param_C(j));
+        mklv2_train_one_feature(K_train, weight, info_kernel, Xnorm_train, y_train, Xnorm_dev, y_dev, options, svm_param_C(j));
 
     % display result
     disp(sprintf('subexp idx = %d', j));
@@ -109,7 +109,7 @@ save(training_file_path, 'result', 'aux', 'info_kernel', 'weight');
 % load testing data
 cells_testing_data = cell(1, n_feature_types);
 for i=1:n_feature_types
-    cells_testing_data{i} = fullfile(test_data_root, features{i}, test_data_tag, sprintf('%s.%s.%s.train.mat', features{i}, test_data_tag, emotions{emotion_idx}));
+    cells_testing_data{i} = fullfile(test_data_root, features{i}, test_data_tag, sprintf('%s.%s.%s.test.mat', features{i}, test_data_tag, emotions{emotion_idx}));
 end
 
 % TBConfirmed: retrain TRAIN+DEV data

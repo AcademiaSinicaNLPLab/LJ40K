@@ -11,7 +11,7 @@ def run(eid):
     test_data_tag = '200p200n_Xy'
     output_prefix = 'Thread%d_E1_800' % (eid)
 
-    cmd = 'matlab -r "mklv2_exp_2(%d, \'%s\', {\'keyword\', \'image_rgba_gist\', \'image_rgba_phog\', \'TFIDF\'}, \'%s\', \'%s\', \'%s\', \'%s\');exit;" > log/log_thread_%d' % \
+    cmd = 'matlab -r "mklv2_exp_2(%d, \'%s\', {\'image_rgba_gist\', \'image_rgba_phog\'}, \'%s\', \'%s\', \'%s\', \'%s\');exit;" > log/log_thread_%d' % \
         (eid, output_prefix, train_data_root, test_data_root, train_data_tag, test_data_tag, eid)
 
     print '> run:',cmd

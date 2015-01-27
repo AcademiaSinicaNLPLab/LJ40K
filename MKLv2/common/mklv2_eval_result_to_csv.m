@@ -1,6 +1,5 @@
 function [] = mklv2_eval_result_to_csv(features, emotion_file_path, input_data_folder, exp_tag, sample_tag, output_file_name)
 
-
 %exp_tag = 'E1_800';
 %sample_tag = '800p800n_Xy';
 %out_file_name = 'exp_2_eval_result.csv'
@@ -9,8 +8,8 @@ function [] = mklv2_eval_result_to_csv(features, emotion_file_path, input_data_f
 %emotion_file_path = fullfile(DATA_DIR, 'emotion.csv');
 %data_path_prefix = fullfile(DATA_DIR, 'output');
 %features = {'image_rgba_gist', 'image_rgba_phog', 'keyword'};
-%emotions = util_read_csv(emotion_file_path);
 
+emotions = util_read_csv(emotion_file_path);
 emotion_bc = zeros(length(features), length(emotions)+1);
 for i=1:length(features)
     emotion_bc(i, 1) = features{i};
@@ -32,4 +31,4 @@ end
 
 csvwrite(output_file_name, emotion_bc);
 
-
+keyboard

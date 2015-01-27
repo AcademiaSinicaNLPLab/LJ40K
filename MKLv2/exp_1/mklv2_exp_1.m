@@ -82,7 +82,7 @@ for i=1:length(features)
     for j=1:length(svm_param_C)        
         result.svm_C{j} = svm_param_C(j);
         [result.y_predict{j}, result.bc{j}, result.time{j}, result.sigma{j},  result.alp_sup{j}, result.w0{j}, result.sv_pos{j}, result.history{j}, result.obj{j}] = ...
-            mklv2_train_one_feature(K_train, weight, info_kernel, Xnorm_train, y_train, Xnorm_dev, y_dev, options, kernel_param, svm_param_C(j));
+            mklv2_train_one_feature(K_train, weight, info_kernel, Xnorm_train, y_train, Xnorm_dev, y_dev, options, svm_param_C(j));
 
         % display result
         disp(sprintf('subexp idx = %d', j));

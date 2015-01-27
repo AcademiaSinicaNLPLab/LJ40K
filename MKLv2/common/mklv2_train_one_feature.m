@@ -1,4 +1,4 @@
-function [y_predict, bc, time, sigma,  alp_sup, w0, sv_pos, history, obj] = mklv2_train_one_feature(K_train, weight, info_kernel, Xnorm_train, y_train, Xnorm_dev, y_dev, options, kernel_param, svm_C)
+function [y_predict, bc, time, sigma,  alp_sup, w0, sv_pos, history, obj] = mklv2_train_one_feature(K_train, weight, info_kernel, Xnorm_train, y_train, Xnorm_dev, y_dev, options, svm_C)
 
 
 %------------------------------------------------------------------
