@@ -33,6 +33,7 @@ mklv2_exp_2_config;
 
 % create sample data matrix
 cells_sample_path = cell(1, length(features));
+n_feature_types = length(features);
 for i=1:length(features)
     cells_sample_path{i} = fullfile(train_data_root, features{i}, train_data_tag, sprintf('%s.%s.%s.train.mat', features{i}, train_data_tag, emotions{emotion_idx}));
 end
@@ -91,6 +92,34 @@ for j=1:length(svm_param_C)
     result.sigma{j}
 end
 
+feature_string = features{1};
+for i=2:n_feature_types
+    feature_string = strcat(feature_string, '+');
+    feature_string = strcat(feature_string, features{i})
+end
+file_prefix = sprintf('%s/%s_%s_%s_%s', OUTPUT_PATH, output_prefix, train_data_tag, emotions{emotion_idx}, feature_string);
+training_file_path = sprintf('%s_train_result.mat', file_prefix);
+disp(sprintf('<== save to %s', training_file_path));
+save(training_file_path, 'result', 'aux', 'info_kernel', 'weight');
 
 
-keyboard;
+%------------------------------------------------------------------
+%                           Evaluation
+%------------------------------------------------------------------
+% load testing data
+cells_testing_data = cell(1, n_feature_types);
+for i=1:n_feature_types
+    cells_testing_data{i} = fullfile(test_data_root, features{i}, test_data_tag, sprintf('%s.%s.%s.train.mat', features{i}, test_data_tag, emotions{emotion_idx}));
+end
+
+% TBConfirmed: retrain TRAIN+DEV data
+
+[X_test_fused, y_test_fused, feature_test_start_idx] = mklv2_load_multiple_features(cells_testing_data);
+eval_result = mklv2_eval(X_train, Xnorm_train, info_kernel, weight, result, options, X_test_fused, y_test_fused);
+
+eval_file_path = sprintf('%s_eval_result.mat', file_prefix);
+disp(sprintf('<== save to %s', eval_file_path));
+save(eval_file_path, 'eval_result');
+
+
+

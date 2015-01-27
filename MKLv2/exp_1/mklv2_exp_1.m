@@ -94,10 +94,19 @@ for i=1:length(features)
     training_file_path = sprintf('%s_train_result.mat', file_prefix);
     disp(sprintf('<== save to %s', training_file_path));
     save(training_file_path, 'result', 'aux', 'info_kernel', 'weight');
+    
 
-    % evaluation
+    %------------------------------------------------------------------
+    %                           Evaluation
+    %------------------------------------------------------------------
     test_data_path = fullfile(test_data_root, features{i}, test_data_tag, sprintf('%s.%s.%s.test.mat', features{i}, test_data_tag, emotions{emotion_idx}));
-    eval_result = mklv2_exp_1_eval(X_train, Xnorm_train, info_kernel, weight, result, options, test_data_path)
+    % load test data X, y
+    disp(sprintf('==> load from %s', test_data_path));
+    load(test_data_path);
+    X_test = X;
+    y_test = y;
+    clear X y;
+    eval_result = mklv2_eval(X_train, Xnorm_train, info_kernel, weight, result, options, X_test, y_test)
 
     eval_file_path = sprintf('%s_eval_result.mat', file_prefix);
     disp(sprintf('<== save to %s', eval_file_path));

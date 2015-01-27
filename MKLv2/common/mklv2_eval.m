@@ -1,10 +1,5 @@
-function [eval_result] = mklv2_exp_1_eval(X_train, Xnorm_train, info_kernel, weight, result, options, test_data_path)
+function [eval_result] = mklv2_eval(X_train, Xnorm_train, info_kernel, weight, result, options, X_test, y_test)
 
-% load test data X, y
-disp(sprintf('==> load from %s', test_data_path));
-load(test_data_path);
-X_test = X;
-y_test = y;
 
 % find the best performance index
 max_bc = max([result.bc{:}]);
@@ -12,6 +7,7 @@ max_idx = find([result.bc{:}] == max_bc)
 
 % make X normalize again
 [Xnorm_train_drop, Xnorm_test] = normalizemeanstd(X_train, X_test);
+keyboard;   % test normalization same
 
 eval_result.idx = cell(1, length(max_idx));
 eval_result.y_predict = cell(1, length(max_idx));
