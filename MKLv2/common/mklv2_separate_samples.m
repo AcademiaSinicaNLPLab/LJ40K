@@ -39,7 +39,7 @@ else
     idx_neg = find(y==classcode(2));
     n_pos = length(idx_pos);
     n_neg = length(idx_neg);
-keyboard
+
     if nargin< 4 || size(aux, 1) == 0
         aux_pos = randperm(n_pos);
         aux.positive = aux_pos;
