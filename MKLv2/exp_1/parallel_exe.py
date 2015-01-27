@@ -19,7 +19,7 @@ def run(eid):
 
 if __name__ == "__main__":
 
-    eids = range(1, 41) 
+    eids = range(1, 41)
     pool = ThreadPool(len(eids))
     res = pool.map(run, eids)
     pool.close()

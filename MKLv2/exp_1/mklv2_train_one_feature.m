@@ -6,10 +6,10 @@ function [y_predict, bc, time, sigma,  alp_sup, w0, sv_pos, history, obj] = mklv
 %------------------------------------------------------------------
 disp(sprintf('Start training, C=%d...', svm_C));
 verbose = 1;
-tic                                                             
+tic;                                                             
 % y_text_train is equal to y_image_train
 [sigma, alp_sup, w0, sv_pos, history, obj] = mklsvm(K_train, y_train, svm_C, options, verbose);
-time = toc
+time = toc;
 disp('Finish training!!!');
 
 

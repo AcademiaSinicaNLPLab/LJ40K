@@ -39,13 +39,14 @@ else
     idx_neg = find(y==classcode(2));
     n_pos = length(idx_pos);
     n_neg = length(idx_neg);
-    if nargin< 4
+keyboard
+    if nargin< 4 || size(aux, 1) == 0
         aux_pos = randperm(n_pos);
         aux.positive = aux_pos;
         aux_neg = randperm(n_neg);   
         aux.negative = aux_neg;
     elseif length(aux.positive)~=n_pos || length(aux.negative)~=n_neg
-            error('unmatched number of aux samples');
+        error('unmatched number of aux samples');
     else
         aux_pos = aux.positive;
         aux_neg = aux.negative;
