@@ -344,7 +344,3 @@ def RandomSample(arrays, dim=0.1, delete_index=None):
             sampled.append( _array )
 
         return sampled
-
-
-
-
