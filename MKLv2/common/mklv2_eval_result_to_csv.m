@@ -10,9 +10,9 @@ function [] = mklv2_eval_result_to_csv(features, emotion_file_path, input_data_f
 %features = {'image_rgba_gist', 'image_rgba_phog', 'keyword'};
 
 emotions = util_read_csv(emotion_file_path);
-emotion_bc = zeros(length(features), length(emotions)+1);
+emotion_bc = cell(length(features), length(emotions)+1);
 for i=1:length(features)
-    emotion_bc(i, 1) = features{i};
+    emotion_bc{i, 1} = features(i);
     for j=2:length(emotions)+1
         file_name = sprintf('Thread%d_%s_%s_%s_%s_eval_result.mat', j-1, exp_tag, sample_tag, emotions{j-1}, features{i});
         data_file_path = fullfile(input_data_folder, file_name);
@@ -25,10 +25,12 @@ for i=1:length(features)
                 maxbc = eval_result.bc{k};
             end
         end
-        emotion_bc(i, j) = maxbc;
+        emotion_bc{i, j} = maxbc;
     end
 end
 
-csvwrite(output_file_name, emotion_bc);
+
+
+util_write_csv(output_file_name, emotion_bc);
 
 keyboard
