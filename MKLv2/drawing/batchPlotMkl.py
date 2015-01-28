@@ -6,13 +6,15 @@ import drawingutils
 
 DATA_DIR = 'Z:\\data\\MKLv2'
 emotion_file_path = os.path.join(DATA_DIR, 'emotion.csv')
-result_file_path = 'Z:\\github_repo\\LJ40K\\MKLv2\\drawing\\exp_1_eval_result_15012716.csv'
+file_name = 'exp_1_eval_result_15012716'
+result_file_path = 'output\\%s.csv' % (file_name)
+output_file_name = "output\\%s.png" % (file_name)
 
 # get emotions
 emotions = drawingutils.get_emotions_from_file(emotion_file_path)
 
 myplot = PlotChart('multi-bar', '(1)-feature-type MKL', 'Emotions', 'Accuracy Rate')
-myplot.set_x_ticks(emotions);
+myplot.set_x_ticks(emotions)
 
 with open(result_file_path, 'rb') as result_csv:
     rows = csv.reader(result_csv)
@@ -25,4 +27,4 @@ with open(result_file_path, 'rb') as result_csv:
             results.append(float(element))
         myplot.add_feature(feature_name, results)
 
-myplot.plot()
+myplot.plot_and_save(output_file_name)

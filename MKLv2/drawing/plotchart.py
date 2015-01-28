@@ -31,7 +31,7 @@ class PlotChart:
         def get_feature_number():
             return len(self.feature_results)
 
-        def _plot_bar_chart(self):
+        def _plot_bar_chart(self, file_name):
 
             fig, ax = plt.subplots()
             index = np.arange(self.num_group)
@@ -59,10 +59,11 @@ class PlotChart:
             plt.grid(True)
 
             plt.tight_layout()
-            plt.show()
+            #plt.show()
+            plt.savefig(file_name)
 
-        def plot(self):
+        def plot_and_save(self, file_name):
             {
-                'multi-bar': self._plot_bar_chart()
+                'multi-bar': self._plot_bar_chart(file_name)
             }[self.chart_type]
             
