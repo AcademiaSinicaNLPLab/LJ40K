@@ -5,7 +5,6 @@
 
 PROJECT_ROOT = '/home/doug919/projects/github_repo/LJ40K/MKLv2';
 DATA_ROOT = '/home/doug919/projects/data/MKLv2';
-OUTPUT_PATH = '/home/doug919/projects/data/MKLv2/output';
 addpath('/tools/SimpleMKL');
 addpath('/tools/SVM-KM');
 
