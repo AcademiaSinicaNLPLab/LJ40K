@@ -59,8 +59,8 @@ class PlotChart:
             plt.grid(True)
 
             plt.tight_layout()
-            #plt.show()
-            plt.savefig(file_name)
+            plt.show()
+            #plt.savefig(file_name)
 
         def plot_and_save(self, file_name):
             {

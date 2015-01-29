@@ -16,20 +16,24 @@ for i=1:length(features)
     for j=2:length(emotions)+1
         file_name = sprintf('Thread%d_%s_%s_%s_%s_eval_result.mat', j-1, exp_tag, sample_tag, emotions{j-1}, features{i});
         data_file_path = fullfile(input_data_folder, file_name);
-        load(data_file_path);
-        
-        % get largest bc
+
         maxbc = 0.0;
-        for k=1:length(eval_result.bc)
-            if maxbc < eval_result.bc{k}
-                maxbc = eval_result.bc{k};
+        if exist(data_file_path, 'file')
+            load(data_file_path);
+            
+            % get largest bc
+            for k=1:length(eval_result.bc)
+                if maxbc < eval_result.bc{k}
+                    maxbc = eval_result.bc{k};
+                end
             end
+        else
+            warning(sprintf('file "%s" does not exist', data_file_path));
         end
+        
         emotion_bc{i, j} = maxbc;
     end
 end
-
-
 
 util_write_csv(output_file_name, emotion_bc);
 
