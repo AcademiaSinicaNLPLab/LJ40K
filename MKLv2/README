@@ -1,13 +1,37 @@
 
 
-Experiment 1: 1 vector
+I. Experiement Design
+
+    Experiment 1: 1-feature-vector
+        features = {'TFIDF', 'keyword', 'image_rgba_gist', 'image_rgba_phog'}
+        Gamma = [0.1 1 10 15 20]
+
+    Experiment 2: 2-feature-vector
+        features = {'TFIDF+keyword', 'image_rgba_gist+image_rgba_phog'}
+        Gamma = [0.1 1 10 15 20]
+
+    Experiment 3: 4-feature-vector (50 kernels)
+        features = {'TFIDF+keyword+image_rgba_gist+image_rgba_phog'}
+        Gamma = [0.1 1 10 15 20]
 
 
+II. Run Experiments
+    
+    1. go to experiment folder, e.g. exp_1
+    2. edit batch file, e.g. single_exe.m or parallel_exe.py
+    3. execute the batch file
 
-Experiment 2: 2+2 vectors
 
+III. Run Experiment with same Seed (Only for single execution)
+    
+    This seed is designed to let the experiment can be reproduced so that
+    we can easily debug or re-run our experiment based on the same datasets.
 
+    Steps of generating seed: 
+        1. matlab -r common/batchGenSeed.m:
+        2. copy the fixed_exp_seed.mat to the destinated experiment folder, 
+           like 'exp_1' (don't change the file name, the experiment only recognize this file name)
+        3. execute the experiment
 
-Experiment 3: 1+1+1+1 vectors
 
 

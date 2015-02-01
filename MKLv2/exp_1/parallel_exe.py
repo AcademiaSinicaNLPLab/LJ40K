@@ -6,13 +6,14 @@ from subprocess import call
 def run(eid):
     
     train_data_root = '/home/doug919/projects/data/MKLv2/2000samples_4/train'
-    test_data_root = '/home/doug919/projects/data/MKLv2/2000samples_4/test'
+    test_data_root = '/home/doug919/projects/data/MKLv2/2000samples_4/test_8000'
     train_data_tag = '800p800n_Xy'
-    test_data_tag = '200p200n_Xy'
-    output_prefix = 'Thread%d_E1_800' % (eid)
+    test_data_tag = 'Csp.Xy'
+    output_prefix = 'Thread%d_E12_8000' % (eid)
+    nclass_neg = 39;
 
-    cmd = 'matlab -r "mklv2_exp_1(%d, \'%s\', {\'keyword\', \'image_rgba_gist\', \'image_rgba_phog\', \'TFIDF\'}, \'%s\', \'%s\', \'%s\', \'%s\');exit;" > log/log_thread_%d' % \
-        (eid, output_prefix, train_data_root, test_data_root, train_data_tag, test_data_tag, eid)
+    cmd = 'matlab -r "addpath(\'../common\');mklv2_load_seed;mklv2_exp_1(%d, \'%s\', {\'keyword\', \'image_rgba_gist\', \'image_rgba_phog\'}, \'%s\', \'%s\', \'%s\', \'%s\', %f);exit;" > log/log_thread_%d' % \
+        (eid, output_prefix, train_data_root, test_data_root, train_data_tag, test_data_tag, nclass_neg;, eid)
 
     print '> run:',cmd
     call(cmd, shell=True)

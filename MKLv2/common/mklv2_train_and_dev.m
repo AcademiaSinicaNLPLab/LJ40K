@@ -1,4 +1,4 @@
-function [y_predict, bc, time, sigma,  alp_sup, w0, sv_pos, history, obj] = mklv2_train_one_feature(K_train, weight, info_kernel, Xnorm_train, y_train, Xnorm_dev, y_dev, options, svm_C)
+function [y_predict, bc, time, sigma,  alp_sup, w0, sv_pos, history, obj] = mklv2_train_and_dev(K_train, weight, info_kernel, Xnorm_train, y_train, Xnorm_dev, y_dev, options, svm_C)
 
 
 %------------------------------------------------------------------
@@ -24,5 +24,6 @@ disp(sprintf('K_dev is %ld x %ld\n', size(K_dev, 1), size(K_dev, 2)));
 %                     Development Evaluation
 %------------------------------------------------------------------
 y_predict = K_dev * alp_sup + w0;
+sigma
 bc = mean(sign(y_predict)==y_dev)
 
