@@ -33,5 +33,24 @@ III. Run Experiment with same Seed (Only for single execution)
            like 'exp_1' (don't change the file name, the experiment only recognize this file name)
         3. execute the experiment
 
+IV. Ploting
+
+    (1) Bar Chart
+    
+    1. Use common/mklv2_test_result_to_csv.m to transfer .mat output to .   csv. You can refer drawing/batchExp1EvalToCsv.m for example.
+
+        Note 2: 
+            You could modify the input file name in the drawing/batchExp1EvalToCsv.m to do what you want.
+
+    2. Use drawing/batchPlotExp1FromCsv.py to plot bar chart.
+        
+        Note 1: 
+            I use matplotlib in Enthought Canopy python package on Win7 to plot the chart.
+        Note 2: 
+            You should modify the input csv file name in the drawing/batchPlotExp1FromCsv.py to do what you want.
+
+    3. Exp2, Exp3, Exp4 use the similar philosophy.
+
+
 
 

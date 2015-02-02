@@ -55,7 +55,9 @@ class PlotChart:
             plt.xticks(index + bar_width, self.x_ticks, rotation='vertical')
             plt.margins(0.01)
             plt.ylim(0.4, 0.7)
-            plt.legend()
+            #plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1))
+            plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=4,
+                    ncol=4, borderaxespad=0.)
             plt.grid(True)
 
             plt.tight_layout()
