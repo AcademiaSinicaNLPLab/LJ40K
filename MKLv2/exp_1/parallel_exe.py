@@ -22,7 +22,8 @@ def run(eid):
 
 if __name__ == "__main__":
 
-    eids = range(21, 41)
+    eids = [21, 25, 26, 27, 28, 29, 38]
+    #eids = range(1, 21)
     #eids = range(1, 41)
     pool = ThreadPool(len(eids))
     res = pool.map(run, eids)

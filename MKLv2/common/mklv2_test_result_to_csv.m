@@ -38,5 +38,3 @@ for i=1:length(features)
 end
 
 util_write_csv(output_file_name, emotion_bc);
-
-keyboard
