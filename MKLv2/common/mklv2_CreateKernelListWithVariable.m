@@ -35,12 +35,13 @@ for i=1:length(variablecell)
             kerneloptioncellaux{j}=kerneloptioncell{i};
             n_feature_type = size(feature_start_idx, 2);
             if n_feature_type > optnum              % middle
-                variablecellaux{j}=feature_start_idx{optnum}:feature_start_idx{optnum+1};
+                variablecellaux{j}=feature_start_idx(optnum):feature_start_idx(optnum+1)-1;
             elseif n_feature_type == optnum         % last
-                variablecellaux{j}=feature_start_idx{optnum}:dim;
+                variablecellaux{j}=feature_start_idx(optnum):dim;
             else
                 error('incorrect feature idx');
             end             
             j=j+1; 
     end;
 end;
+variablecellaux

@@ -64,7 +64,7 @@ disp(sprintf('\n===============BUILD KERNEL===================='));
 feature_string = features{1};
 for i=2:n_feature_types
     feature_string = strcat(feature_string, '+');
-    feature_string = strcat(feature_string, features{i})
+    feature_string = strcat(feature_string, features{i});
 end
 file_prefix = sprintf('%s/%s_%s_%s_%s', OUTPUT_PATH, output_prefix, train_data_tag, emotions{emotion_idx}, feature_string);
 kernel_file_path = sprintf('%s_kernels.mat', file_prefix);

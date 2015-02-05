@@ -19,4 +19,4 @@ addpath('../common');
 mklv2_load_seed;
 
 %'keyword', 'image_rgba_gist', 'image_rgba_phog', 'TFIDF'
-mklv2_exp_2(1, 'E22_8000', {'TFIDF', 'keyword'}, train_data_root, test_data_root, train_data_tag, test_data_tag, nclass_neg, seed);
+mklv2_exp_4(1, 'E4_8000', {'TFIDF', 'keyword', 'image_rgba_gist', 'image_rgba_phog'}, train_data_root, test_data_root, train_data_tag, test_data_tag, nclass_neg, 10);

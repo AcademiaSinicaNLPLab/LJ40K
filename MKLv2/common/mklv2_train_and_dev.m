@@ -10,6 +10,7 @@ tic;
 % y_text_train is equal to y_image_train
 [sigma, alp_sup, w0, sv_pos, history, obj] = mklsvm(K_train, y_train, svm_C, options, verbose);
 time = toc;
+sigma
 disp('Finish training!!!');
 
 
@@ -24,6 +25,5 @@ disp(sprintf('K_dev is %ld x %ld\n', size(K_dev, 1), size(K_dev, 2)));
 %                     Development Evaluation
 %------------------------------------------------------------------
 y_predict = K_dev * alp_sup + w0;
-sigma
 bc = mean(sign(y_predict)==y_dev)
 

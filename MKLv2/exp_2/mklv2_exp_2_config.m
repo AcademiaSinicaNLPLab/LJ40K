@@ -1,4 +1,4 @@
-addpath('/home/doug919/projects/github_repo/LJ40K/MKLv2/common');
+addpath('../common');
 mklv2_config;
 
 OUTPUT_PATH = '/home/doug919/projects/data/MKLv2/output/exp_2';

@@ -1,8 +1,8 @@
-function [K_train, weight, info_kernel, Xnorm_train, Xnorm_test] = mklv2_build_kernel(kernel_param, dim, X_train, X_test, options)
+function [K_train, weight, info_kernel, Xnorm_train, Xnorm_test] = mklv2_build_kernel(kernel_param, dim, X_train, X_test, options, feature_start_idx)
 
 disp('Building training kernel...')
 [weight, info_kernel, Xnorm_train, Xnorm_test] = ...
-        mklv2_preprocessing(kernel_param, dim, X_train, X_test);
+        mklv2_preprocessing(kernel_param, dim, X_train, X_test, feature_start_idx);
 K_train = mklkernel(Xnorm_train, info_kernel, weight, options);
 
 disp(sprintf('weight is %ld x %ld', size(weight, 1), size(weight, 2)));
