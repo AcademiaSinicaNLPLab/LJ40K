@@ -1,5 +1,9 @@
 function [K_train, weight, info_kernel, Xnorm_train, Xnorm_test] = mklv2_build_kernel(kernel_param, dim, X_train, X_test, options, feature_start_idx)
 
+if nargin < 6
+    feature_start_idx = [];
+end
+
 disp('Building training kernel...')
 [weight, info_kernel, Xnorm_train, Xnorm_test] = ...
         mklv2_preprocessing(kernel_param, dim, X_train, X_test, feature_start_idx);

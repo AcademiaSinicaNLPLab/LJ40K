@@ -6,7 +6,7 @@ import drawingutils
 
 DATA_DIR = 'Z:\\data\\MKLv2'
 emotion_file_path = os.path.join(DATA_DIR, 'emotion.csv')
-file_name = 'exp_14_eval_result_15020211'
+file_name = 'exp_15_eval_result_15020704'
 result_file_path = 'output\\%s.csv' % (file_name)
 output_file_name = "output\\%s.png" % (file_name)
 

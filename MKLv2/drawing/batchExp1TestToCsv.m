@@ -10,7 +10,7 @@ mklv2_exp_1_config;
 
 exp_tag = 'E12_8000';
 sample_tag = '800p800n_Xy';
-output_file_name = 'output/exp_14_eval_result_15020211.csv';
+output_file_name = 'output/exp_14_eval_result_15020704.csv';
 
 DATA_DIR = '/home/doug919/projects/data/MKLv2';
 emotion_file_path = fullfile(DATA_DIR, 'emotion.csv');
