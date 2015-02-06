@@ -138,7 +138,7 @@ if (size(X_test_fused, 2) ~= size(X_train, 2))
 end
 
 disp(sprintf('\n===============RE-BUILD KERNEL===================='));
-[K_train, weight, info_kernel, Xnorm_train, Xnorm_test] = mklv2_build_kernel(kernel_param, dim, X_train, X_test_fused, options);
+[K_train, weight, info_kernel, Xnorm_train, Xnorm_test] = mklv2_build_kernel(kernel_param, dim, X_train, X_test_fused, options, feature_test_start_idx);
 
 % save result
 rekernel_file_path = sprintf('%s_rekernel.mat', file_prefix);
