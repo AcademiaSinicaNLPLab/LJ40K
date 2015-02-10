@@ -2,17 +2,22 @@
 
 I. Experiement Design
 
+    There is a slide, in the doc folder, that draws the flow aof these experiments. 
+
     Experiment 1: 1-feature-vector
         features = {'TFIDF', 'keyword', 'image_rgba_gist', 'image_rgba_phog'}
         Gamma = [0.1 1 10 15 20]
+        variables = 1 all, 9 random
 
     Experiment 2: 2-feature-vector
         features = {'TFIDF+keyword', 'image_rgba_gist+image_rgba_phog'}
         Gamma = [0.1 1 10 15 20]
+        variables = 1 all, 9 random
 
-    Experiment 3: 4-feature-vector (50 kernels)
+    Experiment 4: 4-feature-vector (20 kernels)
         features = {'TFIDF+keyword+image_rgba_gist+image_rgba_phog'}
         Gamma = [0.1 1 10 15 20]
+        variables = all for each feature
 
 
 II. Run Experiments
