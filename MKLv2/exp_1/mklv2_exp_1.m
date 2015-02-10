@@ -66,9 +66,11 @@ for i=1:length(features)
         [K_train, weight, info_kernel, Xnorm_train, Xnorm_dev] = mklv2_build_kernel(kernel_param, dim, X_train, X_dev, options);
 
         file_prefix = sprintf('%s/%s_%s_%s_%s', OUTPUT_PATH, output_prefix, train_data_tag, emotions{emotion_idx}, features{i});
-        kernel_file_path = sprintf('%s_kernels_fold%d.mat', file_prefix, i_validation);
-        disp(sprintf('<== save to %s', kernel_file_path));
-        save(kernel_file_path, 'K_train', 'info_kernel', 'weight');
+
+        % This may need 1GB for one file which may exhaust your disk.
+        %kernel_file_path = sprintf('%s_kernels_fold%d.mat', file_prefix, i_validation);
+        %disp(sprintf('<== save to %s', kernel_file_path));
+        %save(kernel_file_path, 'K_train', 'info_kernel', 'weight');
 
 
         disp(sprintf('\n===============TRAINING (fold=%d)====================', i_validation));
@@ -130,7 +132,7 @@ for i=1:length(features)
     % save result
     rekernel_file_path = sprintf('%s_rekernel.mat', file_prefix);
     disp(sprintf('<== save to %s', rekernel_file_path));
-    save(rekernel_file_path, 'K_train', 'weight', 'info_kernel');
+    save(rekernel_file_path, 'K_train', 'weight', 'info_kernel', 'best_param_C');
 
     disp(sprintf('\n===============RE-TRAIN===================='));
     [time, sigma, alp_sup, w0, sv_pos, history, obj] = mklv2_training(kernel_param, options, K_train, y_train, best_param_C);

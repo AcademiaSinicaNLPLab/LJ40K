@@ -9,9 +9,9 @@ def run(eid):
     output_prefix = 'Seq%d_E4_8000' % (eid)
     nclass_neg = 39;
 
-    cmd = 'matlab -r "addpath(\'../common\');mklv2_load_seed;mklv2_exp_4(%d, \'%s\', {\'TFIDF\', \'keyword\', \'image_rgba_gist\', \'image_rgba_phog\'}, \'%s\', \'%s\', \'%s\', \'%s\', %ld, 10);exit;" > log/log_seq_%d' % \
+    cmd = 'matlab -r "mklv2_exp_4(%d, \'%s\', {\'TFIDF\', \'keyword\', \'image_rgba_gist\', \'image_rgba_phog\'}, \'%s\', \'%s\', \'%s\', \'%s\', %ld, 10);exit;" > log/log_seq_%d' % \
         (eid, output_prefix, train_data_root, test_data_root, train_data_tag, test_data_tag, nclass_neg, eid)
-    #cmd = 'matlab -r "addpath(\'../common\');mklv2_load_seed;mklv2_exp_3(%d, \'%s\', {\'image_rgba_gist\', \'image_rgba_phog\'}, \'%s\', \'%s\', \'%s\', \'%s\', true, %f);exit;" > log/log_thread_%d' % \
+    #cmd = 'matlab -r "mklv2_exp_3(%d, \'%s\', {\'image_rgba_gist\', \'image_rgba_phog\'}, \'%s\', \'%s\', \'%s\', \'%s\', true, %f);exit;" > log/log_thread_%d' % \
     #    (eid, output_prefix, train_data_root, test_data_root, train_data_tag, test_data_tag, nclass_neg, eid)
 
     print '> run:',cmd
