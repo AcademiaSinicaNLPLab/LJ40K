@@ -1,0 +1,56 @@
+
+
+I. Experiement Design
+
+    Experiment 1: 1-feature-vector
+        features = {'TFIDF', 'keyword', 'image_rgba_gist', 'image_rgba_phog'}
+        Gamma = [0.1 1 10 15 20]
+
+    Experiment 2: 2-feature-vector
+        features = {'TFIDF+keyword', 'image_rgba_gist+image_rgba_phog'}
+        Gamma = [0.1 1 10 15 20]
+
+    Experiment 3: 4-feature-vector (50 kernels)
+        features = {'TFIDF+keyword+image_rgba_gist+image_rgba_phog'}
+        Gamma = [0.1 1 10 15 20]
+
+
+II. Run Experiments
+    
+    1. go to experiment folder, e.g. exp_1
+    2. edit batch file, e.g. single_exe.m or parallel_exe.py
+    3. execute the batch file
+
+
+III. Run Experiment with same Seed (Only for single execution)
+    
+    This seed is designed to let the experiment can be reproduced so that
+    we can easily debug or re-run our experiment based on the same datasets.
+
+    Steps of generating seed: 
+        1. matlab -r common/batchGenSeed.m:
+        2. copy the fixed_exp_seed.mat to the destinated experiment folder, 
+           like 'exp_1' (don't change the file name, the experiment only recognize this file name)
+        3. execute the experiment
+
+IV. Ploting
+
+    (1) Bar Chart
+    
+    1. Use common/mklv2_test_result_to_csv.m to transfer .mat output to .   csv. You can refer drawing/batchExp1EvalToCsv.m for example.
+
+        Note 2: 
+            You could modify the input file name in the drawing/batchExp1EvalToCsv.m to do what you want.
+
+    2. Use drawing/batchPlotExp1FromCsv.py to plot bar chart.
+        
+        Note 1: 
+            I use matplotlib in Enthought Canopy python package on Win7 to plot the chart.
+        Note 2: 
+            You should modify the input csv file name in the drawing/batchPlotExp1FromCsv.py to do what you want.
+
+    3. Exp2, Exp3, Exp4 use the similar philosophy.
+
+
+
+
