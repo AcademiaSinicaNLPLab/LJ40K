@@ -10,7 +10,7 @@ dbstop if error;
 train_data_root = '/home/doug919/projects/data/MKLv2/2000samples_4/train';
 test_data_root = '/home/doug919/projects/data/MKLv2/2000samples_4/test_8000';
 train_data_tag = '800p800n_Xy';
-test_data_tag = 'Csp.Xy';
+test_data_tag = 'full.Xy';
 
 nclass_neg = 39;
 

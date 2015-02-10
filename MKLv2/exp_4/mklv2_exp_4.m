@@ -42,22 +42,10 @@ end
 
 [X_fused, y_fused, feature_start_idx] = mklv2_load_multiple_features(cells_sample_path);
 
-
 [n_data, dim] = size(X_fused);
 disp(sprintf('X_fused is %ld x %ld.', n_data, dim));
 
-%if n_fold == 1
-    %n_validation = 1;
-    %n_pos_samples = floor(0.9*n_data/2); 
-    %n_neg_samples = n_pos_samples;
-
-    %[X_train, y_train, X_dev, y_dev, seed] = ...
-    %    mklv2_separate_samples(X_fused, y_fused, [n_pos_samples, n_neg_samples], seed);
-
-    %disp(sprintf('%ld text samples are separated into %ld training samples and %ld development samples', ...
-    %    n_data, size(y_train, 1), size(y_dev, 1)));
-%end
-
+file_prefix = sprintf('%s/%s_%s_%s_%s', OUTPUT_PATH, output_prefix, train_data_tag, emotions{emotion_idx}, feature_string);
 
 % cross-validation
 group_indices = crossvalind('Kfold', y_fused, 10);  % we use 10 instead of n_fold because we want the development set get 10% of training samples when n_fold is 1.
@@ -75,9 +63,6 @@ for i_validation=1:n_fold
     %------------------------------------------------------------------
     disp(sprintf('\n===============BUILD KERNEL (fold=%d)====================', i_validation));
     [K_train, weight, info_kernel, Xnorm_train, Xnorm_dev] = mklv2_build_kernel(kernel_param, dim, X_train, X_dev, options, feature_start_idx);
-
-    
-    file_prefix = sprintf('%s/%s_%s_%s_%s', OUTPUT_PATH, output_prefix, train_data_tag, emotions{emotion_idx}, feature_string);
 
     % This may need 1GB for one file which may exhaust your disk.
     %kernel_file_path = sprintf('%s_kernels_fold%d.mat', file_prefix, i_validation);
