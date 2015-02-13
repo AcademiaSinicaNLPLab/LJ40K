@@ -42,12 +42,13 @@ if __name__ == '__main__':
     l.load(path="exp/train/%s/Xy/%s.Xy.%s.train.npz" % (feature, feature, emotion))
 
     ## train
-    l.train(classifier="SVM", kernel="rbf", prob=False)
+    l.train(classifier="SVM", kernel="rbf", prob=True, n_folds=10, random_state=np.random.RandomState(0))
 
     ## ================= testing ================= ##
 
     ## load test data
     test_data = np.load('exp/data/%s.Xy.test.npz' % (feature))
+
     # y_te
     # array(['accomplished', 'accomplished', 'accomplished', ..., 'tired',
     #        'tired', 'tired'],
@@ -58,7 +59,7 @@ if __name__ == '__main__':
     # y_predict
     # array([u'_sad', u'_sad', u'sad', ..., u'_sad', u'_sad', u'_sad'],
     #       dtype='<U4')
-    y_predict = l.clf.predict(X_te)
+    y_predict, X_predict_prob = l.predict(X_te)
 
     ## eval
     accuracy = evals(y_te, y_predict, emotion)

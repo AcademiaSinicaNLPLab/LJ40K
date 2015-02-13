@@ -15,6 +15,12 @@ import logging, os, sys, pickle
 from feelit import utils
 import numpy as np
 
+from sklearn import svm
+from sklearn.linear_model import SGDClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB, BaseNB
+from sklearn.metrics import roc_curve, auc
+
 def load(path, fields="ALL"):
     """
     load `(X,y)`, `K` or `normal npz` format from a .npz file
@@ -455,6 +461,7 @@ class DimensionReduction(object):
         _X = worker.fit_transform(X)
         return _X
 
+
 class Fusion(object):
     """
     Fusion features from .npz files
@@ -609,6 +616,68 @@ class Fusion(object):
         logging.debug("dumping X, y to %s" % (path))
         np.savez_compressed(path, X=self.X, y=self.y)
 
+
+
+class DataPreprocessor(object):
+    """
+    Fuse features from .npz files
+    usage:
+        >> from feelit.features import DataPreprocessor
+        >> import json
+        >> features = ['TFIDF', 'keyword', 'xxx', ...]
+        >> dp = DataPreprocessor()
+        >> dp.loads(features, files)
+        >> X, y = dp.fuse()
+    """
+    def __init__(self, *args, **kwargs):
+        self.clear()
+
+    def loads(self, features, paths):
+        """
+        Input:
+            paths       : list of files to be concatenated
+            features:   : list of feature names
+        """
+        for i, path in enumerate(paths):
+            data = np.load(path)
+            self.Xs[features[i]] = data['X'];
+            self.ys[features[i]] = data['y'];
+            self.feature_name.append(features[i])
+
+    def fuse(self):
+        """
+        Output:
+            fused (X, y) from (self.Xs, self.ys)
+        """
+
+        # try two libraries for fusion
+        try:
+            X = np.concatenate(self.Xs.values(), axis=1)
+        except ValueError:
+            from scipy.sparse import hstack
+            candidate = tuple([arr.all() for arr in self.Xs.values()])
+            X = hstack(candidate)
+              
+        y = self.ys[ self.ys.keys()[0] ]
+        # check all ys are same  
+        for k, v in self.ys.items():
+            assert (y == v).all()
+        feature_name = '+'.join(self.feature_name)
+        
+        return X, y, feature_name
+
+    def clear(self):
+        self.Xs = {}
+        self.ys = {}
+        self.feature_name = []
+
+    def get_binary_y_by_emotion(self, y, emotion):
+        '''
+        return y with elements in {1,-1}
+        '''       
+        yb = [1 if val == emotion else -1 for val in y]
+        return yb
+
 class Learning(object):
     """
     usage:
@@ -632,12 +701,26 @@ class Learning(object):
 
     def __init__(self, X=None, y=None, **kwargs):
 
-        loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
+        if 'debug' in kwargs and kwargs['debug']:
+            loglevel = logging.DEBUG
+        elif 'verbose' in kwargs and kwargs['verbose']:
+            loglevel = logging.INFO
+        else:
+            loglevel = logging.ERROR
+        
         logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)     
 
         self.X = X
         self.y = y
         self.kfold_results = []
+        self.Xs = {}
+        self.ys = {}
+
+    def set(self, X, y, feature_name):
+        self.X = X
+        self.y = y
+        self.feature_name = feature_name
+
 
     def load(self, path):
         # fn: DepPairs_LSA512+TFIDF_LSA512+keyword_LSA512+rgba_gist+rgba_phog.npz
@@ -646,10 +729,7 @@ class Learning(object):
         self.X = data['X']
         self.y = data['y']
 
-
-
         self.feature_name = path.split('/')[-1].replace('.Xy','').replace(".train","").replace(".test","").split('.npz')[0]
-        self.fn = self.feature_name
 
         ## build global idx --> local idx mapping
         # lid, prev = 0, self.y[0]
@@ -660,10 +740,6 @@ class Learning(object):
         #         lid = 0
         #     self.idx_map[i] = lid
         #     lid += 1
-
-
-    def nFold(self, **kwargs):
-        self.KFold(**kwargs)
 
     def check_and_amend(self, NaN=0.0, NONE=0.0):
         """
@@ -721,13 +797,12 @@ class Learning(object):
         # y_ = np.delete(self.y, to_delete, axis=0)
 
     def train(self, **kwargs):
-        from sklearn import svm
-        from sklearn.linear_model import SGDClassifier
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB, BaseNB
+        self._train(self.X, self.y, **kwargs)
+
+    def _train(self, X_train, y_train, **kwargs):
 
         ## setup a classifier
-        classifier = "SGD" if "classifier" not in kwargs else kwargs["classifier"]
+        classifier = "SVM" if "classifier" not in kwargs else kwargs["classifier"]
 
         # ## slice 
         # delete = None if "delete" not in kwargs else kwargs["delete"]
@@ -736,8 +811,6 @@ class Learning(object):
         #     X_train = np.delete(utils.toDense(self.X), delete, axis=0)
         #     y_train = np.delete(self.y, delete, axis=0)
         # else:
-        X_train = self.X
-        y_train = self.y
 
         logging.debug("%d samples x %d features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
         logging.debug("%d samples in y_train" % ( y_train.shape[0] ))
@@ -746,18 +819,20 @@ class Learning(object):
         with_std = True if 'with_std' not in kwargs else kwargs['with_std']
 
         # Cannot center sparse matrices, `with_mean` should be set as `False`
-        if utils.isSparse(self.X):
-            with_mean = False
+        # Douglas: this doesn't make sense
+        #if utils.isSparse(self.X):
+        #    with_mean = False
 
-        scaling = False if 'scaling' not in kwargs else kwargs['scaling']
-        if scaling:
-            scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
-            ## apply scaling on self.X
+        self.scaling = False if 'scaling' not in kwargs else kwargs['scaling']
+        if self.scaling:
+            self.scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
+            ## apply scaling on X
             logging.debug("applying a standard scaling")
-            X_train = scaler.fit_transform(X_train)
+            X_train = self.scaler.fit_transform(X_train)
 
         ## determine whether using predict or predict_proba
-        prob = False if 'prob' not in kwargs else kwargs["prob"]
+        self.prob = False if 'prob' not in kwargs else kwargs["prob"]
+        random_state = None if 'random_state' not in kwargs else kwargs["random_state"]
         
         if classifier == "SVM":
             ## setup a svm classifier
@@ -767,14 +842,14 @@ class Learning(object):
             ## gamma: default (1/num_features)
             num_features = X_train.shape[1]
             gamma = (1.0/num_features) if "gamma" not in kwargs else kwargs["gamma"]
-
-            self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=prob)
+            logging.debug('training with C=%f, gamma=%f' % (C, gamma))
+            self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob)
 
             self.params = "%s_%s" % (classifier, kernel)
         elif classifier == "SGD":
 
             shuffle = True if 'shuffle' not in kwargs else kwargs['shuffle']
-            if prob:
+            if self.prob:
                 self.clf = SGDClassifier(loss="log", shuffle=shuffle)
             else:
                 self.clf = SGDClassifier(shuffle=shuffle)
@@ -789,16 +864,30 @@ class Learning(object):
 
         logging.debug('training with %s classifier' % (classifier))
         self.clf.fit(X_train, y_train)
+    
+    def predict(self, X_test, y_test, **kwargs):
+        '''
+        return dictionary of results
+        '''
+        if self.scaling:
+            X_test = self.scaler.transform(X_test)
 
-    def predict(self, prob=True):
-
-        if prob:
-            self.predict_results = self.clf.predict_proba(self.X)
-        else:
-            self.predict_results = self.clf.predict(self.X)
-        return self.predict_results
-
-
+        y_predict = self.clf.predict(X_test)
+        X_predict_prob = self.clf.predict_proba(X_test) if self.prob else 0
+        results = {}
+        if 'score' in kwargs and kwargs['score'] == True:
+            results.update({'score': self.clf.score(X_test, y_test)})
+        if 'weighted_score' in kwargs and kwargs['weighted_score'] == True:
+            results.update({'weighted_score': self._weighted_score(y_test, y_predict)})
+        if 'y_predict' in kwargs and kwargs['y_predict'] == True:
+            results.update({'y_predict': y_predict})
+        if 'X_predict_prob' in kwargs and kwargs['X_predict_prob'] == True:            
+            results.update({'X_predict_prob': X_predict_prob[:, 1]})
+        if 'auc' in kwargs and kwargs['auc'] == True:
+            fpr, tpr, thresholds = roc_curve(y_test, X_predict_prob[:, 1])
+            results.update({'auc': auc(fpr, tpr)})
+        return results     
+    
     def save_model(self, root=".", feature_name="", ext=".model"):
         
         if not self.feature_name:
@@ -819,13 +908,29 @@ class Learning(object):
     def load_model(self, path):
         logging.info("loading model from %s" % (path))
         self.clf = pickle.load(open(path))
-
-    def kFold(self, **kwargs):
-        from sklearn import svm
-        from sklearn.linear_model import SGDClassifier
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.cross_validation import KFold
-
+    
+    def _weighted_score(self, y_test, y_predict):
+        # calc weighted score 
+        n_pos = len([val for val in y_test if val == 1])
+        n_neg = len([val for val in y_test if val == -1])
+        
+        temp_min = min(n_pos, n_neg)
+        weight_pos = 1.0/(n_pos/temp_min)
+        weight_neg = 1.0/(n_neg/temp_min)
+        
+        correct_predict = [i for i, j in zip(y_test, y_predict) if i == j]
+        weighted_sum = 0.0
+        for answer in correct_predict:
+            weighted_sum += weight_pos if answer == 1 else weight_neg
+        
+        wscore = weighted_sum / (n_pos * weight_pos + n_neg * weight_neg)
+        return wscore
+    
+    def kFold(self, kfolder, **kwargs):
+        '''
+        Return:
+            mean score for kfold training
+        '''
         amend = False if "amend" not in kwargs else kwargs["amend"]
         if amend:
             ## amend dense matrix: replace NaN and None with float values
@@ -833,83 +938,21 @@ class Learning(object):
         else:
             logging.debug("skip the amending process")
 
-        # config n-fold verification
-        n_folds = 10 if 'n_folds' not in kwargs else kwargs['n_folds']
-        shuffle = True if 'shuffle' not in kwargs else kwargs['shuffle']
+        sum_score = 0.0
+        for (i, (train_index, test_index)) in enumerate(kfolder):
 
-        ## get #(rows) of self.X
-        n = utils.getArrayN(self.X)
+            logging.info("cross-validation fold %d: train=%d, test=%d" % (i, len(train_index), len(test_index)))
 
-        ## setup a kFolder
-        kf = KFold(n=n , n_folds=n_folds, shuffle=shuffle )
-        logging.debug("setup a kFold with n=%d, n_folds=%d" % (n, n_folds))
-        
-        ## setup a Scaler
-        logging.debug("setup a StandardScaler")
-        with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
-        with_std = True if 'with_std' not in kwargs else kwargs['with_std']
-
-        ## setup a classifier
-        classifier = "SVM" if "classifier" not in kwargs else kwargs["classifier"].upper()
-
-        ## setup a svm classifier
-        kernel = "rbf" if 'kernel' not in kwargs else kwargs["kernel"]
-
-        # Cannot center sparse matrices, `with_mean` should be set as `False`
-        if utils.isSparse(self.X):
-            with_mean = False
-        
-
-        scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
-
-        logging.debug('training with %s classifier' % (classifier))
-
-
-        ## determine whether using predict or predict_proba
-        prob = False if 'prob' not in kwargs else kwargs["prob"]
-
-
-        for (i, (train_index, test_index)) in enumerate(kf):
-
-            logging.debug("train: %d , test: %d" % (len(train_index), len(test_index)))
-
-            logging.info('cross validation round %d' % (i+1))
             X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
+            self._train(X_train, y_train, **kwargs)
 
+            score = self.predict(X_test, y_test, score=True)['score']
+            logging.info('score = %.5f' % (score))
+            sum_score += score
 
-            logging.debug("scaling")
-
-            X_train = scaler.fit_transform(X_train)
-            X_test = scaler.fit_transform(X_test)
-
-            if classifier == "SVM":
-                clf = svm.SVC(kernel=kernel, probability=prob)
-            elif classifier == "SGD":
-                if prob:
-                    clf = SGDClassifier(loss="log")
-                else:
-                    clf = SGDClassifier()
-            else:
-                logging.error("currently only support SVM and SGD classifiers")
-                return False
-            
-
-            logging.debug("training (#x: %d, #y: %d)" % (len(X_train), len(y_train)))
-            clf.fit(X_train, y_train)
-
-            
-            score = clf.score(X_test, y_test)
-            logging.debug('get score %.3f' % (score))
-
-            
-            if prob:
-                logging.debug("predicting (#x: %d, #y: %d) with prob" % (len(X_test), len(y_test)))
-                result = clf.predict_proba(X_test)
-            else:
-                logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
-                result = clf.predict(X_test)
-
-            self.kfold_results.append( (i+1, y_test, result, score, clf.classes_) )
+        mean_score = sum_score/len(kfolder)
+        logging.info('*** C = %f, mean_score = %f' % (kwargs['C'], mean_score))
+        return mean_score
 
     def save(self, root="results"):
         
