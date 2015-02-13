@@ -51,14 +51,15 @@ perform SVM training for LJ40K
  	
 2. notes
 
-	* feature_list_file is in JSON format. Here is an example:
+	* The example file resides in batch/feature_list_ex.json
+	  feature_list_file is in JSON format. Here is an example:
 		
 		```
 	 	[
 	    	{
-	        	"feature": "TFIDF_TSVD",
-	            "training": "adir/bdir/TFIDF_TSVD.train.npz",
-	            "testing": "cdir/ddir/TFIDF_TSVD.test.npz"
+	        	"feature": "TFIDF_TSVD300",
+	            "train_dir": "adir/bdir",
+	            "test_file": "cdir/ddir/TFIDF_TSVD.test.npz"
 	        },
 	        {
 	            "feature": "keyword",
