@@ -158,6 +158,7 @@ class ImageDrawer(object):
         """
         ## fetch
         mdocs = self._co_pats.find({'udocID': udocID}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
+        
         ## group by sent
         self.Sent2Pats = defaultdict(list)
         for mdoc in mdocs:
@@ -381,7 +382,7 @@ class ImageDrawer(object):
         ## get documents
         logging.info('loading udocIDs and emotions')
         docs = sorted([ (x['udocID'], x['emotion']) for x in self._mc[self._db]['docs'].find().batch_size(1024)], key=lambda x:x[0] )
-import pdb; pdb.set_trace()
+
         logging.info('generating destination folders under %s' % (root_path))
         self.generatePaths(root_path, docs, w, h, alpha, base)
 
