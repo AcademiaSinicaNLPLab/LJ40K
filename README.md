@@ -7,12 +7,13 @@ Python modules for analyzing LJ40K emotion data
 
 perform SVM training for LJ40K
 
-	usage: 
-			batchSimpleTraining.py [-h] [-k NFOLD] [-o OUTPUT_NAME] [-e EMOTION_IDS] 
-								  	[-c C] [-g GAMMA] [-s SCORE_DIR] [-v] [-d] 
-									feature_list_file
+1. usage
 	
-
+	```
+	batchSimpleTraining.py [-h] [-k NFOLD] [-o OUTPUT_NAME] [-e EMOTION_IDS] 
+							[-c C] [-g GAMMA] [-s SCORE_DIR] [-v] [-d] 
+							feature_list_file
+	
 	positional arguments:
   		feature_list_file   This program will fuse the features listed in this
                         	file and feed all of them to the classifier. The file
@@ -42,28 +43,35 @@ perform SVM training for LJ40K
                         	specified directory (DEFAULT: not output)
   		-v, --verbose       show messages
   		-d, --debug         show debug messages
- 
- 
-	notes:
-		1. feature_list_file is in JSON format. Here is an example:
-	        [
-	            {
-	                "feature": "TFIDF_TSVD",
-	                "training": "adir/bdir/TFIDF_TSVD.train.npz",
-	                "testing": "cdir/ddir/TFIDF_TSVD.test.npz"
-	            },
-	            {
-	                "feature": "keyword",
-	                "training": "adir/bdir/keyword.train.npz",
-	                "testing": "cdir/ddir/keyword.test.npz"
-	            }
-	        ]
+ 	```
+ 	
+2. notes
 
-    	2. Use example:
-        	python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 1,10,100,1000 -v feature_list_ex.json
-        	python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 10,30,70,100,300,700,1000 -g 0.0001,0.0003,0.001,0.003,0.01,0.1 TFIDF_TSVD300.json
+	* feature_list_file is in JSON format. Here is an example:
+		
+		```
+	 	[
+	    	{
+	        	"feature": "TFIDF_TSVD",
+	            "training": "adir/bdir/TFIDF_TSVD.train.npz",
+	            "testing": "cdir/ddir/TFIDF_TSVD.test.npz"
+	        },
+	        {
+	            "feature": "keyword",
+	            "training": "adir/bdir/keyword.train.npz",
+	            "testing": "cdir/ddir/keyword.test.npz"
+			}
+	    ]
+		```
+		
+    * Use example:
+    
+    	```
+    	python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 1,10,100,1000 -v feature_list_ex.json
+    	python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 10,30,70,100,300,700,1000 -g 0.0001,0.0003,0.001,0.003,0.01,0.1 TFIDF_TSVD300.json
 
-
+		```
+		
 ## feelit/features.py
 
 1. Load features from files
