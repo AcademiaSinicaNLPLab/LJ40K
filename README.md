@@ -52,13 +52,13 @@ Python modules for analyzing LJ40K emotion data
     >> for C in Cs:
     >> 	for gamma in gammas:
     >> 		score = learner.kFold(kfolder, classifier='SVM', 
-    >>					kernel='rbf', prob=False, 
-    >>					C=c, scaling=True, gamma=gamma)
+    >>							kernel='rbf', prob=False, 
+    >>							C=c, scaling=True, gamma=gamma)
     >>		scores.update({(c, gamma): score})
     >>
 	>> best_C, best_gamma = max(scores.iteritems(), key=operator.itemgetter(1))[0]
 	>> learner.train(classifier='SVM', kernel='rbf', prob=True, C=best_C, gamma=best_gamma, 
-	>>		scaling=True, random_state=np.random.RandomState(0))
+	>>				scaling=True, random_state=np.random.RandomState(0))
 	>> results = learner.predict(X_test, yb_test, weighted_score=True, X_predict_prob=True, auc=True)
 	```
 
