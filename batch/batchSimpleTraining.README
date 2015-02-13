@@ -38,21 +38,22 @@ optional arguments:
   -d, --debug           show debug messages
 
 notes:
-    1. feature_list_file should look like this:
-        [
-            {
-                "feature": "TFIDF_TSVD",
-                "training": "adir/bdir/TFIDF_TSVD.train.npz",
-                "testing": "cdir/ddir/TFIDF_TSVD.test.npz"
-            },
-            {
-                "feature": "keyword",
-                "training": "adir/bdir/keyword.train.npz",
-                "testing": "cdir/ddir/keyword.test.npz"
-            }
-        ]
 
-    2. Use example:
+  1. feature_list_file is in JSON format. Here is an example:
+    [
+        {
+            "feature": "TFIDF_TSVD",
+            "training": "adir/bdir/TFIDF_TSVD.train.npz",
+            "testing": "cdir/ddir/TFIDF_TSVD.test.npz"
+        },
+        {
+            "feature": "keyword",
+            "training": "adir/bdir/keyword.train.npz",
+            "testing": "cdir/ddir/keyword.test.npz"
+        }
+    ]
+
+  2. Use example:
         python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 1,10,100,1000 -v feature_list_ex.json
         python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 10,30,70,100,300,700,1000 -g 0.0001,0.0003,0.001,0.003,0.01,0.1 TFIDF_TSVD300.json
 '''
