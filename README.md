@@ -63,8 +63,8 @@ perform SVM training for LJ40K
 	        },
 	        {
 	            "feature": "keyword",
-	            "training": "adir/bdir/keyword.train.npz",
-	            "testing": "cdir/ddir/keyword.test.npz"
+	            "train_dir": "adir/bdir",
+	            "test_file": "cdir/ddir/keyword.test.npz"
 			}
 	    ]
 		```
