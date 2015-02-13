@@ -345,6 +345,14 @@ def RandomSample(arrays, dim=0.1, delete_index=None):
 
         return sampled
 
+def dump_dict_to_csv(file_name, data):
+    import csv
+    w = csv.writer(open(file_name, 'w'))
+    for key, val in data.items():
+        w.writerow([key, val])
 
-
-
+def dump_list_to_csv(file_name, data):
+    import csv
+    w = csv.writer(open(file_name, 'w'))
+    for row in data:
+        w.writerow(row)
