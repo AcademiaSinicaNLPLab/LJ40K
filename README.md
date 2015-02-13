@@ -46,16 +46,16 @@ Python modules for analyzing LJ40K emotion data
 	```python
 	>> from feelit.features import Learning
 	>> learner = Learning(verbose=args.verbose, debug=args.debug) 
-        >> learner.set(X_train, y_train, feature_name)
-        >>
-        >> scores = {}
-        >> for C in Cs:
-        >> 	for gamma in gammas:
-        >> 		score = learner.kFold(kfolder, classifier='SVM', 
-        >>					kernel='rbf', prob=False, 
-        >>					C=c, scaling=True, gamma=gamma)
-        >>		scores.update({(c, gamma): score})
-        >>
+    >> learner.set(X_train, y_train, feature_name)
+    >>
+    >> scores = {}
+    >> for C in Cs:
+    >> 	for gamma in gammas:
+    >> 		score = learner.kFold(kfolder, classifier='SVM', 
+    >>					kernel='rbf', prob=False, 
+    >>					C=c, scaling=True, gamma=gamma)
+    >>		scores.update({(c, gamma): score})
+    >>
 	>> best_C, best_gamma = max(scores.iteritems(), key=operator.itemgetter(1))[0]
 	>> learner.train(classifier='SVM', kernel='rbf', prob=True, C=best_C, gamma=best_gamma, 
 	>>		scaling=True, random_state=np.random.RandomState(0))
