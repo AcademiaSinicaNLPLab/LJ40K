@@ -36,7 +36,7 @@ def get_arguments(argv):
                         help='SVM parameter (DEFAULT: 1). This can be a list expression, e.g., 0.1,1,10,100')
     parser.add_argument('-g', '--gamma', metavar='GAMMA', type=parse_list, default=None, 
                         help='RBF parameter (DEFAULT: 1/dimensions). This can be a list expression, e.g., 0.1,1,10,100')
-    parser.add_argument('-m', '--misc_output_dir', metavar='MISC_DIR', 
+    parser.add_argument('-t', '--temp_output_dir', metavar='TEMP_DIR', 
                         help='output intermediate data of each emotion in the specified directory (DEFAULT: not output)')
     parser.add_argument('-n', '--no_scaling', action='store_true', default=False,
                         help='do not perform feature scaling (DEFAULT: False)')
@@ -119,8 +119,8 @@ if __name__ == '__main__':
                     score = learner.kfold(kfolder, classifier='SVM', kernel='rbf', prob=False, C=svmc, scaling=(not args.no_scaling), gamma=rbf_gamma)
                     scores.update({(svmc, rbf_gamma): score})
 
-            if args.misc_output_dir:
-                fpath = os.path.join(args.misc_output_dir, 'scores_%s.csv' % emotion_name)
+            if args.temp_output_dir:
+                fpath = os.path.join(args.temp_output_dir, 'scores_%s.csv' % emotion_name)
                 utils.dump_dict_to_csv(fpath, scores)
 
             ## get best parameters
@@ -151,10 +151,10 @@ if __name__ == '__main__':
         ## collect results
         all_results = collect_results(all_results, emotion_name, results)
 
-    if args.misc_output_dir:
-        fpath = os.path.join(args.misc_output_dir, 'best_param.csv')
+    if args.temp_output_dir:
+        fpath = os.path.join(args.temp_output_dir, 'best_param.csv')
         utils.dump_dict_to_csv(fpath, collect_best_param)
-        fpath = os.path.join(args.misc_output_dir, 'X_predict_prob.csv')    
+        fpath = os.path.join(args.temp_output_dir, 'X_predict_prob.csv')    
         utils.dump_list_to_csv(fpath, all_results['X_predict_prob'])
 
     utils.dump_list_to_csv(args.output_file_name, [all_results['emotion'], all_results['weighted_score'], all_results['auc']])   
