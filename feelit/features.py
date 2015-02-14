@@ -21,6 +21,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB, BaseNB
 from sklearn.metrics import roc_curve, auc
 
+'''
 def load(path, fields="ALL"):
     """
     load `(X,y)`, `K` or `normal npz` format from a .npz file
@@ -79,6 +80,7 @@ def dump(path, **kwargs):
     except NameError:
         pass
     np.savez_compressed(path, **kwargs)
+'''
 
 class LoadFile(object):
     """
@@ -233,7 +235,7 @@ class FetchMongo(object):
         self.X = None
         self.y = None
         
-    def _getCollectionName(self, feature_name, prefix="features"):
+    def _get_collection_name(self, feature_name, prefix="features"):
         return '.'.join([prefix, feature_name])
 
     def check(self, collection_name, setting_id):
@@ -307,7 +309,7 @@ class FetchMongo(object):
 
         ## feature_name: TFIDF --> collection_name: TFIDF.features
         if collection_name in ("auto", None):
-            collection_name = self._getCollectionName(feature_name)
+            collection_name = self._get_collection_name(feature_name)
 
         ## check if the current settings is valid
         if not self.check(collection_name, setting_id):
@@ -388,15 +390,15 @@ class FetchMongo(object):
             
         self._fetched.add( (collection_name, setting_id) )
 
-    def tranform(self, reduce_memory=True):
+    def tranform(self, reduce_memory=True, get_sparse=False):
         """
         Dictionary --> Vectors <np.sparse_matrix>
         save variable in self.X, self.y
         """
         from sklearn.feature_extraction import DictVectorizer
         ## all feature_dict collected [ {...}, {...}, ..., {...} ]
-        vec = DictVectorizer()
-        self.X = vec.fit_transform( self.feature_dict_lst ) ## yield a sparse matrix
+        vec = DictVectorizer(sparse=get_sparse)  # Douglas: try not to produce sparse matrix here. we will get things simpler
+        self.X = vec.fit_transform( self.feature_dict_lst ) ## yield a sparse matrix. Douglas: ignore this comment
         self.y = np.array( self.label_lst )
 
         if reduce_memory:
@@ -420,16 +422,7 @@ class FetchMongo(object):
         logging.debug("dumping X, y to %s" % (path))
         np.savez_compressed(path, X=self.X, y=self.y)
 
-class DimensionReduction(object):
-    # from sklearn.decomposition import TruncatedSVD as LSA
-    # lsa = LSA(n_components=512)
-    # _X = lsa.fit_transform(fm.X) ## _X: <40000x100>
-    # np.savez_compressed('data/TFIDF_LSA512.Xy.npz', X=_X, y=y)
-
-    # from sklearn.decomposition import FastICA as ICA
-    # ica = ICA(n_components=40)
-    # _X = ica.fit_transform(fm.X)
-    # np.savez_compressed('data/TFIDF_ICA40.Xy.npz', X=_X, y=y)    
+class DimensionReduction(object):   
     """
     DimensionReduction: wrapper of LSA, ICA in scikit-learn
 
@@ -460,6 +453,403 @@ class DimensionReduction(object):
 
         _X = worker.fit_transform(X)
         return _X
+
+class DataPreprocessor(object):
+    """
+    Fuse features from .npz files
+    usage:
+        >> from feelit.features import DataPreprocessor
+        >> import json
+        >> features = ['TFIDF', 'keyword', 'xxx', ...]
+        >> dp = DataPreprocessor()
+        >> dp.loads(features, files)
+        >> X, y = dp.fuse()
+    """
+    def __init__(self, *args, **kwargs):
+        self.clear()
+
+    def full_matrix(self, X):
+        """
+        Return full_matrix(X)
+
+        if self.X is in sparse representation, 
+            transform it back to full representation
+        if not,
+            do nothing
+
+        we check isSparse by checking if it is possible to get the list len()
+        """
+        if X is not None and utils.isSparse(X):
+            logging.info('sparse matrix representation detected, transform it to full representation')
+        return utils.toDense(X)
+
+    def replace_nan(self, X, NaN=0.0, NONE=0.0):
+        """
+        replace string, NaN, None to 0.0
+        """
+        if X is not None:
+            for i in xrange(len(X)):
+                for j in xrange(len(X[i])):
+                    if type(X[i][j]) == float:
+                        continue
+                    else:
+                        if X[i][j] is None:
+                            X[i][j] = NONE
+                        elif X[i][j] == 'NaN':
+                            X[i][j] = NaN
+                        elif type(X[i][j]) == int:
+                            X[i][j] = float(X[i][j]) 
+                        else:
+                            X[i][j] = NONE
+        return X
+
+    def loads(self, features, paths):
+        """
+        Input:
+            paths       : list of files to be concatenated
+            features:   : list of feature names
+        """
+        for i, path in enumerate(paths):
+            data = np.load(path)
+            X =  self.replace_nan( self.full_matrix(data['X']) )
+            self.Xs[features[i]] = X;
+            self.ys[features[i]] = data['y'];
+            self.feature_name.append(features[i])
+
+    def fuse(self):
+        """
+        Output:
+            fused (X, y) from (self.Xs, self.ys)
+        """
+
+        # try two libraries for fusion
+        try:
+            X = np.concatenate(self.Xs.values(), axis=1)
+        except ValueError:
+            from scipy.sparse import hstack
+            candidate = tuple([arr.all() for arr in self.Xs.values()])
+            X = hstack(candidate)
+              
+        y = self.ys[ self.ys.keys()[0] ]
+        # check all ys are same  
+        for k, v in self.ys.items():
+            assert (y == v).all()
+        feature_name = '+'.join(self.feature_name)
+        
+        return X, y, feature_name
+
+    def clear(self):
+        self.Xs = {}
+        self.ys = {}
+        self.feature_name = []
+
+    def get_binary_y_by_emotion(self, y, emotion):
+        '''
+        return y with elements in {1,-1}
+        '''       
+        yb = [1 if val == emotion else -1 for val in y]
+        return yb
+
+class Learning(object):
+    """
+    usage:
+        >> from feelit.features import Learning
+        >> l = Learning(verbose=True)
+        >> l.load(path="data/image_rgba_gist.Xy.npz")
+
+        ## normal training/testing
+        >> to_delete = l.slice(each_class=">800")
+        >> l.train(classifier="SVM", delete=to_delete, kernel="rbf", prob=True)
+        >> l.save_model()
+        >> l.test()
+        
+        ## n-fold
+        >> l.kFold(classifier="SVM")
+
+        ## save n-fold result
+        >> l.save(root="results")
+    """
+
+    def __init__(self, X=None, y=None, **kwargs):
+
+        if 'debug' in kwargs and kwargs['debug']:
+            loglevel = logging.DEBUG
+        elif 'verbose' in kwargs and kwargs['verbose']:
+            loglevel = logging.INFO
+        else:
+            loglevel = logging.ERROR
+        
+        logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)     
+
+        self.X = X
+        self.y = y
+        self.kfold_results = []
+        self.Xs = {}
+        self.ys = {}
+
+    def set(self, X, y, feature_name):
+        self.X = X
+        self.y = y
+        self.feature_name = feature_name
+
+    def train(self, **kwargs):
+        self._train(self.X, self.y, **kwargs)
+
+    def _train(self, X_train, y_train, **kwargs):
+
+        ## setup a classifier
+        classifier = "SVM" if "classifier" not in kwargs else kwargs["classifier"]
+
+        # ## slice 
+        # delete = None if "delete" not in kwargs else kwargs["delete"]
+
+        # if delete:
+        #     X_train = np.delete(utils.toDense(self.X), delete, axis=0)
+        #     y_train = np.delete(self.y, delete, axis=0)
+        # else:
+
+        logging.debug("%d samples x %d features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
+        logging.debug("%d samples in y_train" % ( y_train.shape[0] ))
+
+        with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
+        with_std = True if 'with_std' not in kwargs else kwargs['with_std']
+
+        # Cannot center sparse matrices, `with_mean` should be set as `False`
+        # Douglas: this doesn't make sense
+        #if utils.isSparse(self.X):
+        #    with_mean = False
+
+        self.scaling = False if 'scaling' not in kwargs else kwargs['scaling']
+        if self.scaling:
+            self.scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
+            ## apply scaling on X
+            logging.debug("applying a standard scaling with_mean=%d, with_std=%d" % (with_mean, with_std))
+            X_train = self.scaler.fit_transform(X_train)
+
+        ## determine whether using predict or predict_proba
+        self.prob = False if 'prob' not in kwargs else kwargs["prob"]
+        random_state = None if 'random_state' not in kwargs else kwargs["random_state"]
+        
+        if classifier == "SVM":
+            ## setup a svm classifier
+            kernel = "rbf" if 'kernel' not in kwargs else kwargs["kernel"]
+            ## cost: default 1
+            C = 1.0 if "C" not in kwargs else kwargs["C"]
+            ## gamma: default (1/num_features)
+            num_features = X_train.shape[1]
+            gamma = (1.0/num_features) if "gamma" not in kwargs else kwargs["gamma"]
+            self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob, random_state=random_state)
+            self.params = "%s_%s C=%f gamma=%f probability=%d" % (classifier, kernel, C, gamma, self.prob)
+
+        elif classifier == "SGD":
+
+            shuffle = True if 'shuffle' not in kwargs else kwargs['shuffle']
+            if self.prob:
+                self.clf = SGDClassifier(loss="log", shuffle=shuffle)
+            else:
+                self.clf = SGDClassifier(shuffle=shuffle)
+
+            self.params = "%s_%s" % (classifier, 'linear')
+        elif classifier == "GaussianNB":
+            self.clf = GaussianNB()
+
+            self.params = "%s_%s" % (classifier, 'NB')
+        else:
+            raise Exception("currently only support SVM, SGD and GaussianNB classifiers")
+
+        logging.debug(self.params)
+        self.clf.fit(X_train, y_train)
+    
+    def predict(self, X_test, y_test, **kwargs):
+        '''
+        return dictionary of results
+        '''
+        if self.scaling:
+            X_test = self.scaler.transform(X_test)
+
+        y_predict = self.clf.predict(X_test)
+        X_predict_prob = self.clf.predict_proba(X_test) if self.prob else 0
+        results = {}
+        if 'score' in kwargs and kwargs['score'] == True:
+            results.update({'score': self.clf.score(X_test, y_test)})
+        if 'weighted_score' in kwargs and kwargs['weighted_score'] == True:
+            results.update({'weighted_score': self._weighted_score(y_test, y_predict)})
+        if 'y_predict' in kwargs and kwargs['y_predict'] == True:
+            results.update({'y_predict': y_predict})
+        if 'X_predict_prob' in kwargs and kwargs['X_predict_prob'] == True:            
+            results.update({'X_predict_prob': X_predict_prob[:, 1]})
+        if 'auc' in kwargs and kwargs['auc'] == True:
+            fpr, tpr, thresholds = roc_curve(y_test, X_predict_prob[:, 1])
+            results.update({'auc': auc(fpr, tpr)})
+        return results     
+    
+    def _weighted_score(self, y_test, y_predict):
+        # calc weighted score 
+        n_pos = len([val for val in y_test if val == 1])
+        n_neg = len([val for val in y_test if val == -1])
+        
+        temp_min = min(n_pos, n_neg)
+        weight_pos = 1.0/(n_pos/temp_min)
+        weight_neg = 1.0/(n_neg/temp_min)
+        
+        correct_predict = [i for i, j in zip(y_test, y_predict) if i == j]
+        weighted_sum = 0.0
+        for answer in correct_predict:
+            weighted_sum += weight_pos if answer == 1 else weight_neg
+        
+        wscore = weighted_sum / (n_pos * weight_pos + n_neg * weight_neg)
+        return wscore
+    
+    def kfold(self, kfolder, **kwargs):
+        '''
+        Return:
+            mean score for kfold training
+        '''
+        amend = False if "amend" not in kwargs else kwargs["amend"]
+        if amend:
+            ## amend dense matrix: replace NaN and None with float values
+            self.check_and_amend()
+        else:
+            logging.debug("skip the amending process")
+
+        sum_score = 0.0
+        for (i, (train_index, test_index)) in enumerate(kfolder):
+
+            logging.info("cross-validation fold %d: train=%d, test=%d" % (i, len(train_index), len(test_index)))
+
+            X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
+            self._train(X_train, y_train, **kwargs)
+
+            score = self.predict(X_test, y_test, score=True)['score']
+            logging.info('score = %.5f' % (score))
+            sum_score += score
+
+        mean_score = sum_score/len(kfolder)
+        logging.info('*** C = %f, mean_score = %f' % (kwargs['C'], mean_score))
+        return mean_score
+
+
+
+    '''  
+    def slice(self, each_class):
+
+        if "<" in each_class:
+            th = int(each_class.replace("<",""))
+            to_delete = [gidx for gidx, lidx in self.idx_map.iteritems() if lidx >= th]
+        elif ">" in each_class: # e.g., >800, including 800
+            th = int(each_class.replace(">",""))
+            to_delete = [gidx for gidx, lidx in self.idx_map.iteritems() if lidx < th]
+        else:
+            logging.error('usage: e.g., l.slice(each_class=">800")')
+            return False
+
+        return to_delete        
+        # X_ = np.delete(self.X, to_delete, axis=0)
+        # y_ = np.delete(self.y, to_delete, axis=0)
+
+    def load(self, path):
+        # fn: DepPairs_LSA512+TFIDF_LSA512+keyword_LSA512+rgba_gist+rgba_phog.npz
+        # fn: image_rgb_gist.Xy.npz
+        data = np.load(path)
+        self.X = data['X']
+        self.y = data['y']
+
+        self.feature_name = path.split('/')[-1].replace('.Xy','').replace(".train","").replace(".test","").split('.npz')[0]
+
+        ## build global idx --> local idx mapping
+        # lid, prev = 0, self.y[0]
+        # self.idx_map = {}
+        # for i,current in enumerate(self.y):
+        #     if prev and prev != current:
+        #         prev = current
+        #         lid = 0
+        #     self.idx_map[i] = lid
+        #     lid += 1
+
+    def save(self, root="results"):
+        
+        # self.clf.classes_ ## corresponding label of the column in predict_results
+        # self.predict_results ## predict probability over 40 classes
+        # self.y ## answers in testing data
+
+        out_path = os.path.join(root, self.feature_name+".res.npz" )
+        np.savez_compressed(out_path, tests=self.y, predicts=self.predict_results, classes=self.clf.classes_ )
+
+    def save_kFold(self, root=".", feature_name="", ext=".npz"):
+        if not self.feature_name:
+            if feature_name:
+                self.feature_name = feature_name
+            else:
+                logging.warn("speficy the feature_name for the file to be saved")
+                return False
+
+        tests, predicts, scores, classes = [], [], [], []
+        for i, y_test, result, score, cla in self.kfold_results:
+            tests.append( y_test )
+            predicts.append( result )
+            scores.append( score )
+            classes.append( cla )
+
+
+        out_path = os.path.join(root, self.feature_name+".res"+ext )
+
+        if not os.path.exists(os.path.dirname(out_path)): os.makedirs(os.path.dirname(out_path))
+
+        np.savez_compressed(out_path, tests=tests, predicts=predicts, scores=scores, classes=classes)
+
+    def save_files(self, root=".", feature_name=""):
+        """
+        """
+        if not self.feature_name:
+            if feature_name:
+                self.feature_name = feature_name
+            else:
+                logging.warn("speficy the feature_name for the file to be saved")
+                return False
+
+        subfolder = self.feature_name
+
+        for ith, y_test, result, score in self.kfold_results:
+
+            out_fn = "%s.fold-%d.result" % (self.feature_name, ith)
+
+            ## deal with IOError
+            ## IOError: [Errno 2] No such file or directory: '../results/text_TFIDF_binary/text_TFIDF.accomplished/text_TFIDF.accomplished.fold-1.result'
+            out_path = os.path.join(root, subfolder, out_fn)
+            out_dir = os.path.dirname(out_path)
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir)
+
+            with open(out_path, 'w') as fw:
+
+                fw.write( ','.join( map(lambda x:str(x), y_test) ) )
+                fw.write('\n')
+
+                fw.write( ','.join( map(lambda x:str(x), result) ) )
+                fw.write('\n')
+
+
+    def save_model(self, root=".", feature_name="", ext=".model"):
+        
+        if not self.feature_name:
+            if feature_name:
+                self.feature_name = feature_name
+            else:
+                logging.warn("speficy the feature_name for the file to be saved")
+                return False
+        out_path = os.path.join(root, self.feature_name+"."+self.params+".model" )
+        out_dir = os.path.dirname(out_path)
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+        pickle.dump(self.clf, open(out_path, "wb"), protocol=2)
+        logging.info("dump model to %s" %(out_path))
+
+        return out_path
+
+    def load_model(self, path):
+        logging.info("loading model from %s" % (path))
+        self.clf = pickle.load(open(path))
+
 
 
 class Fusion(object):
@@ -617,401 +1007,4 @@ class Fusion(object):
         np.savez_compressed(path, X=self.X, y=self.y)
 
 
-
-class DataPreprocessor(object):
-    """
-    Fuse features from .npz files
-    usage:
-        >> from feelit.features import DataPreprocessor
-        >> import json
-        >> features = ['TFIDF', 'keyword', 'xxx', ...]
-        >> dp = DataPreprocessor()
-        >> dp.loads(features, files)
-        >> X, y = dp.fuse()
-    """
-    def __init__(self, *args, **kwargs):
-        self.clear()
-
-    def loads(self, features, paths):
-        """
-        Input:
-            paths       : list of files to be concatenated
-            features:   : list of feature names
-        """
-        for i, path in enumerate(paths):
-            data = np.load(path)
-            self.Xs[features[i]] = data['X'];
-            self.ys[features[i]] = data['y'];
-            self.feature_name.append(features[i])
-
-    def fuse(self):
-        """
-        Output:
-            fused (X, y) from (self.Xs, self.ys)
-        """
-
-        # try two libraries for fusion
-        try:
-            X = np.concatenate(self.Xs.values(), axis=1)
-        except ValueError:
-            from scipy.sparse import hstack
-            candidate = tuple([arr.all() for arr in self.Xs.values()])
-            X = hstack(candidate)
-              
-        y = self.ys[ self.ys.keys()[0] ]
-        # check all ys are same  
-        for k, v in self.ys.items():
-            assert (y == v).all()
-        feature_name = '+'.join(self.feature_name)
-        
-        return X, y, feature_name
-
-    def clear(self):
-        self.Xs = {}
-        self.ys = {}
-        self.feature_name = []
-
-    def get_binary_y_by_emotion(self, y, emotion):
-        '''
-        return y with elements in {1,-1}
-        '''       
-        yb = [1 if val == emotion else -1 for val in y]
-        return yb
-
-class Learning(object):
-    """
-    usage:
-        >> from feelit.features import Learning
-        >> l = Learning(verbose=True)
-        >> l.load(path="data/image_rgba_gist.Xy.npz")
-
-        ## normal training/testing
-        >> to_delete = l.slice(each_class=">800")
-        >> l.train(classifier="SVM", delete=to_delete, kernel="rbf", prob=True)
-        >> l.save_model()
-        >> l.test()
-        
-        ## n-fold
-        >> l.kFold(classifier="SVM")
-
-        ## save n-fold result
-        >> l.save(root="results")
-    """
-
-
-    def __init__(self, X=None, y=None, **kwargs):
-
-        if 'debug' in kwargs and kwargs['debug']:
-            loglevel = logging.DEBUG
-        elif 'verbose' in kwargs and kwargs['verbose']:
-            loglevel = logging.INFO
-        else:
-            loglevel = logging.ERROR
-        
-        logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)     
-
-        self.X = X
-        self.y = y
-        self.kfold_results = []
-        self.Xs = {}
-        self.ys = {}
-
-    def set(self, X, y, feature_name):
-        self.X = X
-        self.y = y
-        self.feature_name = feature_name
-
-
-    def load(self, path):
-        # fn: DepPairs_LSA512+TFIDF_LSA512+keyword_LSA512+rgba_gist+rgba_phog.npz
-        # fn: image_rgb_gist.Xy.npz
-        data = np.load(path)
-        self.X = data['X']
-        self.y = data['y']
-
-        self.feature_name = path.split('/')[-1].replace('.Xy','').replace(".train","").replace(".test","").split('.npz')[0]
-
-        ## build global idx --> local idx mapping
-        # lid, prev = 0, self.y[0]
-        # self.idx_map = {}
-        # for i,current in enumerate(self.y):
-        #     if prev and prev != current:
-        #         prev = current
-        #         lid = 0
-        #     self.idx_map[i] = lid
-        #     lid += 1
-
-    def check_and_amend(self, NaN=0.0, NONE=0.0):
-        """
-        - deal with transformation of sparse matrix format
-            i.e., Reassign X by X = X.all(): because of numpy.load()
-        - replace NaN and None if a dense matrix is given
-        """
-        logging.debug("start check and amend matrix X")
-
-        if self.X != None and self.y != None:
-
-            if utils.isSparse(self.X):
-                ## if X is a sparse array --> it came from DictVectorize
-                ## Reassign X by X = X.all(): because of numpy.load()
-                self.X = self.X.all()
-                logging.debug("sparse matrix detected.")
-                logging.debug("no need to further amending on a sparse matrix")
-                return False
-            else:
-                logging.debug('dense matrix detected')
-                logging.debug("start to check and amend matrix value, fill NaN with %f and None with %f" % (NaN, NONE))
-                replaced = 0
-                for i in xrange(len(self.X)):
-                    for j in xrange(len(self.X[i])):
-                        if type(self.X[i][j]) == float:
-                            continue
-                        else:
-                            replaced += 1
-                            if self.X[i][j] == None:
-                                self.X[i][j] = NONE
-                            elif self.X[i][j] == 'NaN':
-                                self.X[i][j] = NaN
-                            else:
-                                self.X[i][j] = NONE
-                self._checked = True
-                return replaced
-        else:
-            logging.debug("no X to be checked and amended")
-            return False
-  
-    def slice(self, each_class):
-
-        if "<" in each_class:
-            th = int(each_class.replace("<",""))
-            to_delete = [gidx for gidx, lidx in self.idx_map.iteritems() if lidx >= th]
-        elif ">" in each_class: # e.g., >800, including 800
-            th = int(each_class.replace(">",""))
-            to_delete = [gidx for gidx, lidx in self.idx_map.iteritems() if lidx < th]
-        else:
-            logging.error('''usage: e.g., l.slice(each_class=">800")''')
-            return False
-
-        return to_delete        
-        # X_ = np.delete(self.X, to_delete, axis=0)
-        # y_ = np.delete(self.y, to_delete, axis=0)
-
-    def train(self, **kwargs):
-        self._train(self.X, self.y, **kwargs)
-
-    def _train(self, X_train, y_train, **kwargs):
-
-        ## setup a classifier
-        classifier = "SVM" if "classifier" not in kwargs else kwargs["classifier"]
-
-        # ## slice 
-        # delete = None if "delete" not in kwargs else kwargs["delete"]
-
-        # if delete:
-        #     X_train = np.delete(utils.toDense(self.X), delete, axis=0)
-        #     y_train = np.delete(self.y, delete, axis=0)
-        # else:
-
-        logging.debug("%d samples x %d features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
-        logging.debug("%d samples in y_train" % ( y_train.shape[0] ))
-
-        with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
-        with_std = True if 'with_std' not in kwargs else kwargs['with_std']
-
-        # Cannot center sparse matrices, `with_mean` should be set as `False`
-        # Douglas: this doesn't make sense
-        #if utils.isSparse(self.X):
-        #    with_mean = False
-
-        self.scaling = False if 'scaling' not in kwargs else kwargs['scaling']
-        if self.scaling:
-            self.scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
-            ## apply scaling on X
-            logging.debug("applying a standard scaling")
-            X_train = self.scaler.fit_transform(X_train)
-
-        ## determine whether using predict or predict_proba
-        self.prob = False if 'prob' not in kwargs else kwargs["prob"]
-        random_state = None if 'random_state' not in kwargs else kwargs["random_state"]
-        
-        if classifier == "SVM":
-            ## setup a svm classifier
-            kernel = "rbf" if 'kernel' not in kwargs else kwargs["kernel"]
-            ## cost: default 1
-            C = 1.0 if "C" not in kwargs else kwargs["C"]
-            ## gamma: default (1/num_features)
-            num_features = X_train.shape[1]
-            gamma = (1.0/num_features) if "gamma" not in kwargs else kwargs["gamma"]
-            logging.debug('training with C=%f, gamma=%f' % (C, gamma))
-            self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob)
-
-            self.params = "%s_%s" % (classifier, kernel)
-        elif classifier == "SGD":
-
-            shuffle = True if 'shuffle' not in kwargs else kwargs['shuffle']
-            if self.prob:
-                self.clf = SGDClassifier(loss="log", shuffle=shuffle)
-            else:
-                self.clf = SGDClassifier(shuffle=shuffle)
-
-            self.params = "%s_%s" % (classifier, 'linear')
-        elif classifier == "GaussianNB":
-            self.clf = GaussianNB()
-
-            self.params = "%s_%s" % (classifier, 'NB')
-        else:
-            raise Exception("currently only support SVM, SGD and GaussianNB classifiers")
-
-        logging.debug('training with %s classifier' % (classifier))
-        self.clf.fit(X_train, y_train)
-    
-    def predict(self, X_test, y_test, **kwargs):
-        '''
-        return dictionary of results
-        '''
-        if self.scaling:
-            X_test = self.scaler.transform(X_test)
-
-        y_predict = self.clf.predict(X_test)
-        X_predict_prob = self.clf.predict_proba(X_test) if self.prob else 0
-        results = {}
-        if 'score' in kwargs and kwargs['score'] == True:
-            results.update({'score': self.clf.score(X_test, y_test)})
-        if 'weighted_score' in kwargs and kwargs['weighted_score'] == True:
-            results.update({'weighted_score': self._weighted_score(y_test, y_predict)})
-        if 'y_predict' in kwargs and kwargs['y_predict'] == True:
-            results.update({'y_predict': y_predict})
-        if 'X_predict_prob' in kwargs and kwargs['X_predict_prob'] == True:            
-            results.update({'X_predict_prob': X_predict_prob[:, 1]})
-        if 'auc' in kwargs and kwargs['auc'] == True:
-            fpr, tpr, thresholds = roc_curve(y_test, X_predict_prob[:, 1])
-            results.update({'auc': auc(fpr, tpr)})
-        return results     
-    
-    def save_model(self, root=".", feature_name="", ext=".model"):
-        
-        if not self.feature_name:
-            if feature_name:
-                self.feature_name = feature_name
-            else:
-                logging.warn("speficy the feature_name for the file to be saved")
-                return False
-        out_path = os.path.join(root, self.feature_name+"."+self.params+".model" )
-        out_dir = os.path.dirname(out_path)
-        if not os.path.exists(out_dir):
-            os.makedirs(out_dir)
-        pickle.dump(self.clf, open(out_path, "wb"), protocol=2)
-        logging.info("dump model to %s" %(out_path))
-
-        return out_path
-
-    def load_model(self, path):
-        logging.info("loading model from %s" % (path))
-        self.clf = pickle.load(open(path))
-    
-    def _weighted_score(self, y_test, y_predict):
-        # calc weighted score 
-        n_pos = len([val for val in y_test if val == 1])
-        n_neg = len([val for val in y_test if val == -1])
-        
-        temp_min = min(n_pos, n_neg)
-        weight_pos = 1.0/(n_pos/temp_min)
-        weight_neg = 1.0/(n_neg/temp_min)
-        
-        correct_predict = [i for i, j in zip(y_test, y_predict) if i == j]
-        weighted_sum = 0.0
-        for answer in correct_predict:
-            weighted_sum += weight_pos if answer == 1 else weight_neg
-        
-        wscore = weighted_sum / (n_pos * weight_pos + n_neg * weight_neg)
-        return wscore
-    
-    def kFold(self, kfolder, **kwargs):
-        '''
-        Return:
-            mean score for kfold training
-        '''
-        amend = False if "amend" not in kwargs else kwargs["amend"]
-        if amend:
-            ## amend dense matrix: replace NaN and None with float values
-            self.check_and_amend()
-        else:
-            logging.debug("skip the amending process")
-
-        sum_score = 0.0
-        for (i, (train_index, test_index)) in enumerate(kfolder):
-
-            logging.info("cross-validation fold %d: train=%d, test=%d" % (i, len(train_index), len(test_index)))
-
-            X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
-            self._train(X_train, y_train, **kwargs)
-
-            score = self.predict(X_test, y_test, score=True)['score']
-            logging.info('score = %.5f' % (score))
-            sum_score += score
-
-        mean_score = sum_score/len(kfolder)
-        logging.info('*** C = %f, mean_score = %f' % (kwargs['C'], mean_score))
-        return mean_score
-
-    def save(self, root="results"):
-        
-        # self.clf.classes_ ## corresponding label of the column in predict_results
-        # self.predict_results ## predict probability over 40 classes
-        # self.y ## answers in testing data
-
-        out_path = os.path.join(root, self.feature_name+".res.npz" )
-        np.savez_compressed(out_path, tests=self.y, predicts=self.predict_results, classes=self.clf.classes_ )
-
-    def save_kFold(self, root=".", feature_name="", ext=".npz"):
-        if not self.feature_name:
-            if feature_name:
-                self.feature_name = feature_name
-            else:
-                logging.warn("speficy the feature_name for the file to be saved")
-                return False
-
-        tests, predicts, scores, classes = [], [], [], []
-        for i, y_test, result, score, cla in self.kfold_results:
-            tests.append( y_test )
-            predicts.append( result )
-            scores.append( score )
-            classes.append( cla )
-
-
-        out_path = os.path.join(root, self.feature_name+".res"+ext )
-
-        if not os.path.exists(os.path.dirname(out_path)): os.makedirs(os.path.dirname(out_path))
-
-        np.savez_compressed(out_path, tests=tests, predicts=predicts, scores=scores, classes=classes)
-
-    def save_files(self, root=".", feature_name=""):
-        """
-        """
-        if not self.feature_name:
-            if feature_name:
-                self.feature_name = feature_name
-            else:
-                logging.warn("speficy the feature_name for the file to be saved")
-                return False
-
-        subfolder = self.feature_name
-
-        for ith, y_test, result, score in self.kfold_results:
-
-            out_fn = "%s.fold-%d.result" % (self.feature_name, ith)
-
-            ## deal with IOError
-            ## IOError: [Errno 2] No such file or directory: '../results/text_TFIDF_binary/text_TFIDF.accomplished/text_TFIDF.accomplished.fold-1.result'
-            out_path = os.path.join(root, subfolder, out_fn)
-            out_dir = os.path.dirname(out_path)
-            if not os.path.exists(out_dir):
-                os.makedirs(out_dir)
-
-            with open(out_path, 'w') as fw:
-
-                fw.write( ','.join( map(lambda x:str(x), y_test) ) )
-                fw.write('\n')
-
-                fw.write( ','.join( map(lambda x:str(x), result) ) )
-                fw.write('\n')
+    '''

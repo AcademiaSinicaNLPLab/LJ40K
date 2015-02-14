@@ -150,9 +150,6 @@ def getArrayN(array):
 def getShape(arr):
     return arr.shape if arr.shape else arr.any().shape
 
-def toDense(a):
-    densed_a = a if a.shape else a.all().toarray()
-    return densed_a
 
 def isSparse(array):
     """
@@ -166,6 +163,13 @@ def isSparse(array):
         return True
     else:
         return False
+
+def toDense(a):
+    # densed_a = a if a.shape else a.all().toarray()
+    # Douglas: I think all() means if all fields are True which is not we want.
+    #          I think toDense should work like below
+    densed_a = a.toarray() if isSparse(a) else a    
+    return densed_a
 
 def GenerateDeleteIndexes(n, dim, path=None):
     """

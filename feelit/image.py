@@ -150,6 +150,16 @@ class ImageDrawer(object):
 
         return dict( zip(selected_emotions, [1]*len(selected_emotions)) )
 
+    def is_duplicated(self, collected, current):
+        """
+        In pats.udocID 0, there are some duplicated data.
+        As a temporal solution, I filter them
+        """
+        for x in collected:
+            if x == current and x['weight'] == 1:
+                return True
+        return False
+
     def listPatterns(self, udocID):
         """
         Fetch patterns in the document with given udocID
@@ -160,8 +170,15 @@ class ImageDrawer(object):
         mdocs = self._co_pats.find({'udocID': udocID}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
         
         ## group by sent
+        collected = []
         self.Sent2Pats = defaultdict(list)
         for mdoc in mdocs:
+            if self.is_duplicated(collected, mdoc):
+                print mdoc
+                continue
+            else:
+                collected.append(mdoc)
+
             self.Sent2Pats[mdoc['usentID']].append( (mdoc['pattern'], mdoc['weight']) )
         return self.Sent2Pats
 
@@ -209,6 +226,7 @@ class ImageDrawer(object):
                     vector[e] = dist[e]*w
 
                 self.dists[usentID].append( vector )
+                
         return self.dists
 
     def aggregate(self, **kwargs):
@@ -413,6 +431,7 @@ class ImageDrawer(object):
             root = self.getRoot(udocID)
             logging.debug('save image of %d under %s' % (udocID, root))
             self.save(fname=fn, root=root)
+
 
 if __name__ == '__main__':
 

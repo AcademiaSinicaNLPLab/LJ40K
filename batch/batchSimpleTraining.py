@@ -36,8 +36,10 @@ def get_arguments(argv):
                         help='SVM parameter (DEFAULT: 1). This can be a list expression, e.g., 0.1,1,10,100')
     parser.add_argument('-g', '--gamma', metavar='GAMMA', type=parse_list, default=None, 
                         help='RBF parameter (DEFAULT: 1/dimensions). This can be a list expression, e.g., 0.1,1,10,100')
-    parser.add_argument('-s', '--output_misc_dir', metavar='SCORE_DIR', 
+    parser.add_argument('-m', '--misc_output_dir', metavar='MISC_DIR', 
                         help='output intermediate data of each emotion in the specified directory (DEFAULT: not output)')
+    parser.add_argument('-n', '--no_scaling', action='store_true', default=False,
+                        help='do not perform feature scaling (DEFAULT: False)')
     parser.add_argument('-v', '--verbose', action='store_true', default=False, 
                         help='show messages')
     parser.add_argument('-d', '--debug', action='store_true', default=False, 
@@ -114,11 +116,11 @@ if __name__ == '__main__':
             scores = {}
             for svmc in args.c:
                 for rbf_gamma in args.gamma:
-                    score = learner.kFold(kfolder, classifier='SVM', kernel='rbf', prob=False, C=svmc, scaling=True, gamma=rbf_gamma)
+                    score = learner.kfold(kfolder, classifier='SVM', kernel='rbf', prob=False, C=svmc, scaling=(not args.no_scaling), gamma=rbf_gamma)
                     scores.update({(svmc, rbf_gamma): score})
 
-            if args.output_misc_dir:
-                fpath = os.path.join(args.output_misc_dir, 'scores_%s.csv' % emotion_name)
+            if args.misc_output_dir:
+                fpath = os.path.join(args.misc_output_dir, 'scores_%s.csv' % emotion_name)
                 utils.dump_dict_to_csv(fpath, scores)
 
             ## get best parameters
@@ -135,7 +137,7 @@ if __name__ == '__main__':
 
         ## ---------------------------------------------------------------------------
         ## train all data
-        learner.train(classifier='SVM', kernel='rbf', prob=True, C=best_C, gamma=best_gamma, scaling=True, random_state=np.random.RandomState(0))
+        learner.train(classifier='SVM', kernel='rbf', prob=True, C=best_C, gamma=best_gamma, scaling=(not args.no_scaling), random_state=np.random.RandomState(0))
 
         ## prepare testing data
         paths = [f['test_file'] for f in features]
@@ -149,10 +151,10 @@ if __name__ == '__main__':
         ## collect results
         all_results = collect_results(all_results, emotion_name, results)
 
-    if args.output_misc_dir:
-        fpath = os.path.join(args.output_misc_dir, 'best_param.csv')
+    if args.misc_output_dir:
+        fpath = os.path.join(args.misc_output_dir, 'best_param.csv')
         utils.dump_dict_to_csv(fpath, collect_best_param)
-        fpath = os.path.join(args.output_misc_dir, 'X_predict_prob.csv')    
+        fpath = os.path.join(args.misc_output_dir, 'X_predict_prob.csv')    
         utils.dump_list_to_csv(fpath, all_results['X_predict_prob'])
 
     utils.dump_list_to_csv(args.output_file_name, [all_results['emotion'], all_results['weighted_score'], all_results['auc']])   
