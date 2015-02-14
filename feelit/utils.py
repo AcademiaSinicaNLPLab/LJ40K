@@ -165,10 +165,15 @@ def isSparse(array):
         return False
 
 def toDense(a):
-    # densed_a = a if a.shape else a.all().toarray()
-    # Douglas: I think all() means if all fields are True which is not we want.
-    #          I think toDense should work like below
-    densed_a = a.toarray() if isSparse(a) else a    
+    if not a.shape:     
+        # this is a trick invented by Maxis.
+        # when a csr_matrix saved by savez_compressed is loaded by np.load,
+        # we need to use all() to convert the matrix back to csr_matrix type
+        densed_a = a.all().toarray()
+    elif isSparse(a):
+        densed_a = a.toarray()
+    else:
+        densed_a = a
     return densed_a
 
 def GenerateDeleteIndexes(n, dim, path=None):
