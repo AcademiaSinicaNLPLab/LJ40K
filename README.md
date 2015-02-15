@@ -14,8 +14,9 @@ perform SVM training for LJ40K
 1. usage
 	
 	```
-	batchSimpleTraining.py [-h] [-k NFOLD] [-o OUTPUT_NAME] [-e EMOTION_IDS] 
-							[-c C] [-g GAMMA] [-s SCORE_DIR] [-v] [-d] 
+	batchSimpleTraining.py [-h] [-k NFOLD] [-o OUTPUT_NAME] 
+							[-e EMOTION_IDS] [-c C] [-g GAMMA] [-t TEMP_DIR] 
+							[-n] [-v] [-d] 
 							feature_list_file
 	
 	positional arguments:
@@ -42,9 +43,10 @@ perform SVM training for LJ40K
   		-g GAMMA, --gamma GAMMA
                         	RBF parameter (DEFAULT: 1/dimensions). This can be a
                         	list expression, e.g., 0.1,1,10,100
-  		-s SCORE_DIR, --output_misc_dir SCORE_DIR
+  		-t TEMP_DIR, --temp_output_dir TEMP_DIR
                         	output intermediate data of each emotion in the
                         	specified directory (DEFAULT: not output)
+		-n, --no_scaling      do not perform feature scaling (DEFAULT: False)       
   		-v, --verbose       show messages
   		-d, --debug         show debug messages
  	```
@@ -73,7 +75,7 @@ perform SVM training for LJ40K
     
     	```
     	python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 1,10,100,1000 -v feature_list_ex.json
-    	python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 10,30,70,100,300,700,1000 -g 0.0001,0.0003,0.001,0.003,0.01,0.1 TFIDF_TSVD300.json
+    	python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 10,30,70,100,300,700,1000 -g 0.0001,0.0003,0.001,0.003,0.01,0.1 -t temp_dir -v TFIDF_TSVD300.json
 
 		```
 		
