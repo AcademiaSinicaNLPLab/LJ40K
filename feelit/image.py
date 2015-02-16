@@ -128,6 +128,7 @@ class ImageDrawer(object):
         output: pruned distirbution
         by @Chenyi-Lee
         """
+        import pdb; pdb.set_trace()
         ## temp_dict -> { 0.3: ['happy', 'angry'], 0.8: ['sleepy'], ... }
         ## (dist)      { 2:   ['bouncy', 'sleepy', 'hungry', 'creative'], 3: ['cheerful']}
         temp_dict = defaultdict( list ) 
@@ -173,13 +174,18 @@ class ImageDrawer(object):
         collected = []
         self.Sent2Pats = defaultdict(list)
         for mdoc in mdocs:
-            if self.is_duplicated(collected, mdoc):
-                print mdoc
+            """
+            In pats.udocID 0, there are some duplicated data.
+            As a temporal solution, I filter them
+            """
+            if self.is_duplicated(collected, mdoc):      
+                #print mdoc
                 continue
             else:
                 collected.append(mdoc)
 
             self.Sent2Pats[mdoc['usentID']].append( (mdoc['pattern'], mdoc['weight']) )
+
         return self.Sent2Pats
 
     def getPatDists(self, **kwargs):
@@ -206,11 +212,12 @@ class ImageDrawer(object):
         for usentID in self.Sent2Pats:
 
             for pat, weight in self.Sent2Pats[usentID]:
-
+                # treat all patterns in lower case
                 pat = pat.lower()
 
                 mdoc = self._co_lexicon.find_one({'pattern': pat}) if not scoring else self.co_patscore.find_one({'pattern': pat})
 
+                # filter patterns' corpus frequency <= min_count 
                 if not mdoc or sum(mdoc['count'].values()) <= min_count:
                     continue
                 else:
@@ -262,6 +269,7 @@ class ImageDrawer(object):
             else:
                 vectors = reduce(lambda x,y:x+y, self.dists.values())
 
+        # re-using object
         self.dists = vectors
 
         return self.dists
@@ -446,9 +454,11 @@ if __name__ == '__main__':
     # ID.draw(w=5,h=5)
     # ID.save(fname="38800.rgba.png")
 
+    # alpha == True, percent = 1.0 -> rgba
     ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="pattern", alpha=True, root_path='images')
     # ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="sentence", alpha=True)
 
+    # alpha == False, percent = 0.5 -> rgb
     ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="pattern", alpha=False, percent=0.5, root_path='images')
     # ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="sentence", alpha=False, percent=0.5)
 

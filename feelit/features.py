@@ -466,8 +466,15 @@ class DataPreprocessor(object):
         >> X, y = dp.fuse()
     """
     def __init__(self, *args, **kwargs):
+        
         self.clear()
 
+        if 'logger' in kwargs and kwargs['logger']:
+            self.logging = kwargs['logger']
+        else:
+            logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
+            self.logging = logging
+    '''
     def full_matrix(self, X):
         """
         Return full_matrix(X)
@@ -480,7 +487,7 @@ class DataPreprocessor(object):
         we check isSparse by checking if it is possible to get the list len()
         """
         if X is not None and utils.isSparse(X):
-            logging.info('sparse matrix representation detected, transform it to full representation')
+            self.logging.info('sparse matrix representation detected, transform it to full representation')
         return utils.toDense(X)
 
     def replace_nan(self, X, NaN=0.0, NONE=0.0):
@@ -492,17 +499,19 @@ class DataPreprocessor(object):
                 for j in xrange(len(X[i])):
                     if type(X[i][j]) == float:
                         continue
-                    else:
+                    else:                        
                         if X[i][j] is None:
+                            self.logging.debug('element None detected in X[%d][%d]' % (i,j))
                             X[i][j] = NONE
                         elif X[i][j] == 'NaN':
+                            self.logging.debug('element "NaN" detected in X[%d][%d]' % (i,j))
                             X[i][j] = NaN
                         elif type(X[i][j]) == int:
                             X[i][j] = float(X[i][j]) 
                         else:
                             X[i][j] = NONE
         return X
-
+    '''
     def loads(self, features, paths):
         """
         Input:
@@ -510,10 +519,16 @@ class DataPreprocessor(object):
             features:   : list of feature names
         """
         for i, path in enumerate(paths):
-            data = np.load(path)
-            X =  self.replace_nan( self.full_matrix(data['X']) )
-            self.Xs[features[i]] = X;
+            self.logging.info('loading data from %s' % (path))
+            data = np.load(path)            
+
+            #X =  self.replace_nan( self.full_matrix(data['X']) )
+            X = data['X']
+            self.Xs[features[i]] = X
             self.ys[features[i]] = data['y'];
+
+            self.logging.info('feature "%s", %dx%d' % (features[i], X.shape[0], X.shape[1]))
+
             self.feature_name.append(features[i])
 
     def fuse(self):
@@ -535,7 +550,9 @@ class DataPreprocessor(object):
         for k, v in self.ys.items():
             assert (y == v).all()
         feature_name = '+'.join(self.feature_name)
-        
+
+        self.logging.debug('fused feature name is "%s", %dx%d' % (feature_name, X.shape[0], X.shape[1]))
+
         return X, y, feature_name
 
     def clear(self):
@@ -547,7 +564,7 @@ class DataPreprocessor(object):
         '''
         return y with elements in {1,-1}
         '''       
-        yb = [1 if val == emotion else -1 for val in y]
+        yb = np.array([1 if val == emotion else -1 for val in y])
         return yb
 
 class Learning(object):
@@ -573,14 +590,11 @@ class Learning(object):
 
     def __init__(self, X=None, y=None, **kwargs):
 
-        if 'debug' in kwargs and kwargs['debug']:
-            loglevel = logging.DEBUG
-        elif 'verbose' in kwargs and kwargs['verbose']:
-            loglevel = logging.INFO
+        if 'logger' in kwargs and kwargs['logger']:
+            self.logging = kwargs['logger']
         else:
-            loglevel = logging.ERROR
-        
-        logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)     
+            logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
+            self.logging = logging    
 
         self.X = X
         self.y = y
@@ -623,8 +637,8 @@ class Learning(object):
         #     y_train = np.delete(self.y, delete, axis=0)
         # else:
 
-        logging.debug("%d samples x %d features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
-        logging.debug("%d samples in y_train" % ( y_train.shape[0] ))
+        self.logging.debug("%d samples x %d features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
+        self.logging.debug("%d samples in y_train" % ( y_train.shape[0] ))
 
         with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
         with_std = True if 'with_std' not in kwargs else kwargs['with_std']
@@ -633,12 +647,12 @@ class Learning(object):
         # Douglas: this doesn't make sense
         #if utils.isSparse(self.X):
         #    with_mean = False
-
+        
         self.scaling = False if 'scaling' not in kwargs else kwargs['scaling']
         if self.scaling:
             self.scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
             ## apply scaling on X
-            logging.debug("applying a standard scaling with_mean=%d, with_std=%d" % (with_mean, with_std))
+            self.logging.debug("applying a standard scaling with_mean=%d, with_std=%d" % (with_mean, with_std))
             X_train = self.scaler.fit_transform(X_train)
 
         ## determine whether using predict or predict_proba
@@ -672,30 +686,42 @@ class Learning(object):
         else:
             raise Exception("currently only support SVM, SGD and GaussianNB classifiers")
 
-        logging.debug(self.params)
+        self.logging.debug(self.params)
         self.clf.fit(X_train, y_train)
     
     def predict(self, X_test, y_test, **kwargs):
         '''
         return dictionary of results
         '''
+
         if self.scaling:
             X_test = self.scaler.transform(X_test)
 
+        self.logging.info('y_test = %s', str(y_test.shape))
         y_predict = self.clf.predict(X_test)
         X_predict_prob = self.clf.predict_proba(X_test) if self.prob else 0
         results = {}
         if 'score' in kwargs and kwargs['score'] == True:
-            results.update({'score': self.clf.score(X_test, y_test)})
+            results.update({'score': self.clf.score(X_test, y_test.tolist())})
+            self.logging.info('score = %f', results['score'])
+
         if 'weighted_score' in kwargs and kwargs['weighted_score'] == True:
-            results.update({'weighted_score': self._weighted_score(y_test, y_predict)})
+            results.update({'weighted_score': self._weighted_score(y_test.tolist(), y_predict)})
+            self.logging.info('weighted_score = %f', results['weighted_score'])
+
         if 'y_predict' in kwargs and kwargs['y_predict'] == True:
             results.update({'y_predict': y_predict})
+            self.logging.info('y_predict = %f', results['y_predict'])
+
         if 'X_predict_prob' in kwargs and kwargs['X_predict_prob'] == True:            
             results.update({'X_predict_prob': X_predict_prob[:, 1]})
+            self.logging.info('X_predict_prob = %s', str(results['X_predict_prob']))
+
         if 'auc' in kwargs and kwargs['auc'] == True:
             fpr, tpr, thresholds = roc_curve(y_test, X_predict_prob[:, 1])
             results.update({'auc': auc(fpr, tpr)})
+            self.logging.info('auc = %f', results['auc'])
+
         return results     
     
     def _weighted_score(self, y_test, y_predict):
@@ -732,22 +758,22 @@ class Learning(object):
             ## amend dense matrix: replace NaN and None with float values
         #    self.check_and_amend()
         #else:
-        #    logging.debug("skip the amending process")
+        #    self.logging.debug("skip the amending process")
 
         sum_score = 0.0
         for (i, (train_index, test_index)) in enumerate(kfolder):
 
-            logging.info("cross-validation fold %d: train=%d, test=%d" % (i, len(train_index), len(test_index)))
+            self.logging.info("cross-validation fold %d: train=%d, test=%d" % (i, len(train_index), len(test_index)))
 
             X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
             self._train(X_train, y_train, **kwargs)
 
             score = self.predict(X_test, y_test, score=True)['score']
-            logging.info('score = %.5f' % (score))
+            self.logging.info('score = %.5f' % (score))
             sum_score += score
 
         mean_score = sum_score/len(kfolder)
-        logging.info('*** C = %f, mean_score = %f' % (kwargs['C'], mean_score))
+        self.logging.info('*** C = %f, mean_score = %f' % (kwargs['C'], mean_score))
         return mean_score
 
 
@@ -762,7 +788,7 @@ class Learning(object):
             th = int(each_class.replace(">",""))
             to_delete = [gidx for gidx, lidx in self.idx_map.iteritems() if lidx < th]
         else:
-            logging.error('usage: e.g., l.slice(each_class=">800")')
+            self.logging.error('usage: e.g., l.slice(each_class=">800")')
             return False
 
         return to_delete        
@@ -802,7 +828,7 @@ class Learning(object):
             if feature_name:
                 self.feature_name = feature_name
             else:
-                logging.warn("speficy the feature_name for the file to be saved")
+                self.logging.warn("speficy the feature_name for the file to be saved")
                 return False
 
         tests, predicts, scores, classes = [], [], [], []
@@ -826,7 +852,7 @@ class Learning(object):
             if feature_name:
                 self.feature_name = feature_name
             else:
-                logging.warn("speficy the feature_name for the file to be saved")
+                self.logging.warn("speficy the feature_name for the file to be saved")
                 return False
 
         subfolder = self.feature_name
@@ -857,19 +883,19 @@ class Learning(object):
             if feature_name:
                 self.feature_name = feature_name
             else:
-                logging.warn("speficy the feature_name for the file to be saved")
+                self.logging.warn("speficy the feature_name for the file to be saved")
                 return False
         out_path = os.path.join(root, self.feature_name+"."+self.params+".model" )
         out_dir = os.path.dirname(out_path)
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
         pickle.dump(self.clf, open(out_path, "wb"), protocol=2)
-        logging.info("dump model to %s" %(out_path))
+        self.logging.info("dump model to %s" %(out_path))
 
         return out_path
 
     def load_model(self, path):
-        logging.info("loading model from %s" % (path))
+        self.logging.info("loading model from %s" % (path))
         self.clf = pickle.load(open(path))
 
 

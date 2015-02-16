@@ -6,6 +6,7 @@ from feelit.features import Learning
 from feelit.features import DataPreprocessor
 from sklearn.cross_validation import KFold
 import operator
+import logging
 
 emotions = utils.LJ40K
 
@@ -88,6 +89,14 @@ if __name__ == '__main__':
     args = get_arguments(sys.argv[1:])
     features = get_feature_list(args.feature_list_file)
 
+    if args.debug:
+        loglevel = logging.DEBUG
+    elif args.verbose:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.ERROR
+    logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel) 
+
     # main loop
     collect_best_param = {}   # TODO: remove
     all_results = {'emotion': ['Evals'], 'weighted_score': ['Accuracy Rate'], 'auc': ['AUC'], 'X_predict_prob': []}
@@ -97,7 +106,7 @@ if __name__ == '__main__':
         paths = get_paths_by_emotion(features, emotion_name)
 
         ## prepare data
-        preprocessor = DataPreprocessor()
+        preprocessor = DataPreprocessor(logger=logging)
         preprocessor.loads([f['feature'] for f in features], paths)
         X_train, y_train, feature_name = preprocessor.fuse()
 
@@ -105,7 +114,7 @@ if __name__ == '__main__':
         if not args.gamma:
             args.gamma = [1.0/X_train.shape[1]]
                 
-        learner = Learning(verbose=args.verbose, debug=args.debug) 
+        learner = Learning(logger=logging) 
         learner.set(X_train, y_train, feature_name)
 
         ## setup a kFolder
@@ -127,12 +136,11 @@ if __name__ == '__main__':
             best_C, best_gamma = max(scores.iteritems(), key=operator.itemgetter(1))[0]
 
             ## collect misc
-            collect_best_param.update({emotion_name: (best_C, best_gamma)})
+            collect_best_param.update({emotion_name: (best_C, best_gamma)}) 
 
         else:   # we choose first parameters if we do not perfrom cross-validation
-            best_C = args.c[0] if not args.c else 1.0
-            best_gamma = args.gamma[0] if not args.gamma else (1.0/X_train.shape[1])
-
+            best_C = args.c[0] if args.c else 1.0
+            best_gamma = args.gamma[0] if args.gamma else (1.0/X_train.shape[1])
 
 
         ## ---------------------------------------------------------------------------
@@ -143,8 +151,8 @@ if __name__ == '__main__':
         paths = [f['test_file'] for f in features]
         preprocessor.clear()
         preprocessor.loads([f['feature'] for f in features], paths)
-        
         X_test, y_test, feature_name = preprocessor.fuse()
+        
         yb_test = preprocessor.get_binary_y_by_emotion(y_test, emotion_name)
         results = learner.predict(X_test, yb_test, weighted_score=True, X_predict_prob=True, auc=True)
 
