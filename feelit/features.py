@@ -670,7 +670,7 @@ class Learning(object):
             ## gamma: default (1/num_features)
             num_features = X_train.shape[1]
             gamma = (1.0/num_features) if "gamma" not in kwargs else kwargs["gamma"]
-            self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob, random_state=random_state)
+            self.clf = svm.SVC(C=C, gamma=gamma, kernel=kernel, probability=self.prob, random_state=random_state, class_weight='auto')
             self.params = "%s_%s C=%f gamma=%f probability=%d" % (classifier, kernel, C, gamma, self.prob)
 
         elif classifier == "SGD":

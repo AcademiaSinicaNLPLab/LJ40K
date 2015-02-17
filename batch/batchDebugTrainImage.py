@@ -28,7 +28,7 @@ if __name__ == '__main__':
         logging.info('emotion = %s' % emotion)
 
         learner = Learning(logger=logging)
-
+        
         yb_train = dp.get_binary_y_by_emotion(y_train, emotion)
         learner.set(X_train, yb_train, feature_name)
 
@@ -36,8 +36,10 @@ if __name__ == '__main__':
         kfolder = KFold(n=utils.getArrayN(X_train) , n_folds=10, shuffle=True)
 
         ######################
-        Cs = [10,100,300,1000,3000,10000,30000]
-        gammas = [0.0001,0.0003,0.001,0.003,0.01,0.1]
+        #Cs = [10,100,300,1000,3000,10000,30000]
+        #gammas = [0.0001,0.0003,0.001,0.003,0.01,0.1]
+        Cs = [100,1000,10000]
+        gammas = [0.0001,0.001]
 
         scores = {}
         for c in Cs:
