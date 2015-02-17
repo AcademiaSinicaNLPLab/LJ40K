@@ -15,7 +15,7 @@ if __name__ == '__main__':
     #features = ['rgb_gist', 'rgb_phog', 'rgba_gist', 'rgba_phog']
     ###################################
     features = ['rgba_gist']
-    paths = ['/home/doug919/projects/github_repo/LJ40K/images/programs/output/npzs/rgba_gist/rgba_gist_test.npz']
+    paths = ['/home/doug919/projects/github_repo/LJ40K/images/programs/output/npzs/rgba_gist/rgba_gist_1000.npz']
 
     dp = DataPreprocessor(logger=logging)
     dp.loads(features, paths)
