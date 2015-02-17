@@ -128,7 +128,7 @@ class ImageDrawer(object):
         output: pruned distirbution
         by @Chenyi-Lee
         """
-        import pdb; pdb.set_trace()
+
         ## temp_dict -> { 0.3: ['happy', 'angry'], 0.8: ['sleepy'], ... }
         ## (dist)      { 2:   ['bouncy', 'sleepy', 'hungry', 'creative'], 3: ['cheerful']}
         temp_dict = defaultdict( list ) 

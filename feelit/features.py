@@ -465,8 +465,11 @@ class DataPreprocessor(object):
         >> dp.loads(features, files)
         >> X, y = dp.fuse()
     """
-    def __init__(self, *args, **kwargs):
-        
+    def __init__(self, **kwargs):
+        """
+        options:
+            logger: logging instance
+        """
         self.clear()
 
         if 'logger' in kwargs and kwargs['logger']:
