@@ -18,8 +18,7 @@ if __name == '__main__':
 
 
 	logging.info('forming patterns')
-    for udocID, emotion in docs:
-    	print udocID
-    	print emotion
+    for udocId, emotion in docs:
+    	pf.get_patterns_by_udocId(udocId)
 
 
