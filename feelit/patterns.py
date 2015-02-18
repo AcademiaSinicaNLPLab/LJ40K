@@ -4,24 +4,24 @@ import numpy as np
 import pymongo
 
 """
-	See batchFetchPatterns.py for example usage
+    See batchFetchPatterns.py for example usage
 """
 
 class PatternFetcher(object):
 
-	def __init__(self, **kwargs):
-		"""
-		options:
-			logger			: logging instance
-			mongo_addr		: mongo db import 							(DEFAULT: 'doraemon.iis.sinica.edu.tw')
-			db 				: database name 							(DEFAULT: 'LJ40K')
-			lexicon			: pattern frequency collection 				(DEFAULT: 'lexicon.nested')
-			pats			: patterns related to all the documents 	(DEFAULT: 'pats')
-			docs 			: map of udocId and emotions 				(DEFAULT: 'docs')
-		"""
+    def __init__(self, **kwargs):
+        """
+        options:
+            logger          : logging instance
+            mongo_addr      : mongo db import                           (DEFAULT: 'doraemon.iis.sinica.edu.tw')
+            db              : database name                             (DEFAULT: 'LJ40K')
+            lexicon         : pattern frequency collection              (DEFAULT: 'lexicon.nested')
+            pats            : patterns related to all the documents     (DEFAULT: 'pats')
+            docs            : map of udocId and emotions                (DEFAULT: 'docs')
+        """
 
-		## process args
-		if 'logger' in kwargs and kwargs['logger']:
+        ## process args
+        if 'logger' in kwargs and kwargs['logger']:
             self.logging = kwargs['logger']
         else:
             logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
@@ -45,24 +45,24 @@ class PatternFetcher(object):
         self.collection_docs = self.mongo_client[self.db][docs]
 
     def get_all_doc_labels(self, sort=True):
-    	"""
-    	parameters:
-    		sort: True/False; sorting by docId
-    	return:
-    		[(udocId0, emotion0), ...], which is sorted by udocId
-    	"""
-    	docs = [(doc['udocID'], doc['emotion']) for doc in self.collection_docs.find().batch_size(1024)]
+        """
+        parameters:
+            sort: True/False; sorting by docId
+        return:
+            [(udocId0, emotion0), ...], which is sorted by udocId
+        """
+        docs = [(doc['udocID'], doc['emotion']) for doc in self.collection_docs.find().batch_size(1024)]
 
-    	if sort:
-    		docs = sorted(docs, key=lambda x:x[0] )
-    	return docs
+        if sort:
+            docs = sorted(docs, key=lambda x:x[0] )
+        return docs
 
     def get_patterns_by_udocId(self, udocId):
 
-    	"""
+        """
 
-    	"""
-    	mdocs = self.collection_patterns.find({'udocID': udocID}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
+        """
+        mdocs = self.collection_patterns.find({'udocID': udocID}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
         import pdb; pdb.set_trace()
 
 
