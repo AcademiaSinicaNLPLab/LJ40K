@@ -104,7 +104,6 @@ if __name__ == '__main__':
     ## prepare data
     paths = [f['train_file'] for f in features]
 
-    import pdb; pdb.set_trace()
     preprocessor = DataPreprocessor(logger=logging)
     preprocessor.loads([f['feature'] for f in features], paths)
     X_train, y_train, feature_name = preprocessor.fuse()
