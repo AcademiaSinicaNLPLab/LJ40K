@@ -62,7 +62,7 @@ class PatternFetcher(object):
         """
 
         """
-        mdocs = self.collection_patterns.find({'udocID': udocID}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
+        mdocs = self.collection_patterns.find({'udocID': udocId}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
         import pdb; pdb.set_trace()
 
 
