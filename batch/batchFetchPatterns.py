@@ -3,7 +3,7 @@ import logging
 sys.path.append('..')
 from feelit.patterns import PatternFetcher
 
-if __name == '__main__':
+if __name__ == '__main__':
 
     
     loglevel = logging.DEBUG
