@@ -41,7 +41,7 @@ class PatternFetcher(object):
         self.mongo_client = pymongo.MongoClient(mongo_addr)
 
         self.collection_pattern_freq = self.mongo_client[self.db][lexicon]
-        self.collection_relations = self.mongo_client[self.db][pats]
+        self.collection_patterns = self.mongo_client[self.db][pats]
         self.collection_docs = self.mongo_client[self.db][docs]
 
     def get_all_doc_labels(self, sort=True):
@@ -62,4 +62,4 @@ class PatternFetcher(object):
     	"""
 
     	"""
-    	mdocs = self.collection_relations.find({'udocID': udocID}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
+    	mdocs = self.collection_patterns.find({'udocID': udocID}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
