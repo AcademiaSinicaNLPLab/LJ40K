@@ -44,6 +44,9 @@ class PatternFetcher(object):
         self.collection_patterns = self.mongo_client[self.db][pats]
         self.collection_docs = self.mongo_client[self.db][docs]
 
+        color_order = self.mongo_client['feelit']['color.order']
+        self.emotion_list = color_order.find_one({ 'order': 'group-maxis'})['emotion']
+
     def get_all_doc_labels(self, sort=True):
         """
         parameters:
@@ -57,13 +60,40 @@ class PatternFetcher(object):
             docs = sorted(docs, key=lambda x:x[0] )
         return docs
 
-    def get_patterns_by_udocId(self, udocId):
+    def get_pattern_freq_by_udocId(self, udocId, min_count=1):
 
         """
-
+        parameters:
+            udocId: the id you want 
+            min_count: the minimum frequency count to filter out the patterns
         """
-        mdocs = self.collection_patterns.find({'udocID': udocId}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
+
+        pattern_freq_vec = {}
+        mdocs = self.collection_patterns.find({'udocID': udocId}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).sort('usentID', 1).batch_size(512)
+
+        for mdoc in mdocs:
+            
+            pat = mdoc['pattern'].lower()
+            freq_vec = self.collection_pattern_freq.find_one({'pattern': pat}) 
+            
+            # filter patterns' corpus frequency <= min_count 
+            if not freq_vec:
+                self.logging.warning('pattern freq of "%s" is not found' % (pat))
+                continue
+            elif sum(freq_vec['count'].values()) <= min_count:
+                self.logging.warning('pattern freq of "%s" <= %d' % (pat, min_count))
+                continue
+
+            # build freq vector with all emotions
+            weighted_freq_vec = {}
+            for e in self.emotion_list:
+                if e not in freq_vec['count']: 
+                    freq_vec['count'][e] = 0.0
+                weighted_freq_vec[e] = freq_vec['count'][e] * mdoc['weight']
+
+            pattern_freq_vec[pat] = weighted_freq_vec
         import pdb; pdb.set_trace()
+        return pattern_freq_vec
 
 
 

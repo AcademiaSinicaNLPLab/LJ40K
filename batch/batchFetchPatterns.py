@@ -19,6 +19,6 @@ if __name__ == '__main__':
 
     logging.info('forming patterns')
     for udocId, emotion in docs:
-        pf.get_patterns_by_udocId(udocId)
+        pf.get_pattern_freq_by_udocId(udocId)
 
 
