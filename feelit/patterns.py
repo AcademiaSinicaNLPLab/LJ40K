@@ -60,7 +60,7 @@ class PatternFetcher(object):
             docs = sorted(docs, key=lambda x:x[0] )
         return docs
 
-    def get_pattern_freq_by_udocId(self, udocId, min_count=1):
+    def get_pattern_freq_by_udocId(self, udocId, min_count=1, weighted=True):
 
         """
         parameters:
@@ -89,10 +89,12 @@ class PatternFetcher(object):
             for e in self.emotion_list:
                 if e not in freq_vec['count']: 
                     freq_vec['count'][e] = 0.0
-                weighted_freq_vec[e] = freq_vec['count'][e] * mdoc['weight']
+
+                w = mdoc['weight'] if weighted else 1.0
+                weighted_freq_vec[e] = freq_vec['count'][e] * w
 
             pattern_freq_vec[pat] = weighted_freq_vec
-        import pdb; pdb.set_trace()
+
         return pattern_freq_vec
 
 

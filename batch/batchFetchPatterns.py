@@ -18,7 +18,14 @@ if __name__ == '__main__':
 
 
     logging.info('forming patterns')
+    min_count = 1
+    weighted = True    
     for udocId, emotion in docs:
-        pf.get_pattern_freq_by_udocId(udocId)
+
+        pattern_freq_vec = pf.get_pattern_freq_by_udocId(udocId, min_count, weighted)
+
+        # sum vectors horizontally
+        import pdb; pdb.set_trace()
+
 
 
