@@ -2,6 +2,9 @@
 
 ##########################################
 # classes:
+#   feelit > features > PatternFetcher
+#   feelit > features > FileSplitter
+#   feelit > features > DataPreprocessor
 #   feelit > features > LoadFile
 #   feelit > features > FetchMongo
 #   feelit > features > DimensionReduction
@@ -20,6 +23,9 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB, BaseNB
 from sklearn.metrics import roc_curve, auc
+from random import randint
+import pymongo
+from operator import add
 
 '''
 def load(path, fields="ALL"):
@@ -81,6 +87,221 @@ def dump(path, **kwargs):
         pass
     np.savez_compressed(path, **kwargs)
 '''
+
+class PatternFetcher(object):
+    """
+    See batchFetchPatterns.py for example usage
+    """
+
+    def __init__(self, **kwargs):
+        """
+        options:
+            logger          : logging instance
+            mongo_addr      : mongo db import                           (DEFAULT: 'doraemon.iis.sinica.edu.tw')
+            db              : database name                             (DEFAULT: 'LJ40K')
+            lexicon         : pattern frequency collection              (DEFAULT: 'lexicon.nested')
+            pats            : patterns related to all the documents     (DEFAULT: 'pats')
+            docs            : map of udocId and emotions                (DEFAULT: 'docs')
+        """
+
+        ## process args
+        if 'logger' in kwargs and kwargs['logger']:
+            self.logging = kwargs['logger']
+        else:
+            logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
+            self.logging = logging
+
+        ## mongodb settings
+        mongo_addr = 'doraemon.iis.sinica.edu.tw' if 'mongo_addr' not in kwargs else kwargs['mongo_addr']
+
+        ## default collection name
+        self.db = 'LJ40K' if 'db' not in kwargs else kwargs['db']
+
+        lexicon = 'lexicon.nested' if 'lexicon' not in kwargs else kwargs['lexicon']
+        pats = 'pats' if 'pats' not in kwargs else kwargs['pats']
+        docs = 'docs' if 'docs' not in kwargs else kwargs['docs']
+
+        ### connect to mongodb
+        self.mongo_client = pymongo.MongoClient(mongo_addr)
+
+        self.collection_pattern_freq = self.mongo_client[self.db][lexicon]
+        self.collection_patterns = self.mongo_client[self.db][pats]
+        self.collection_docs = self.mongo_client[self.db][docs]
+
+        color_order = self.mongo_client['feelit']['color.order']
+        self.emotion_list = color_order.find_one({ 'order': 'group-maxis'})['emotion']
+
+    def get_all_doc_labels(self, sort=True):
+        """
+        parameters:
+            sort: True/False; sorting by docId
+        return:
+            [(udocId0, emotion0), ...], which is sorted by udocId
+        """
+        docs = [(doc['udocID'], doc['emotion']) for doc in self.collection_docs.find().batch_size(1024)]
+
+        if sort:
+            docs = sorted(docs, key=lambda x:x[0] )
+        return docs
+
+    def get_pattern_freq_by_udocId(self, udocId, min_count=1, weighted=True):
+
+        """
+        parameters:
+            udocId: the id you want 
+            min_count: the minimum frequency count to filter out the patterns
+        """
+
+        pattern_freq_vec = {}
+        mdocs = self.collection_patterns.find({'udocID': udocId}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).sort('usentID', 1).batch_size(512)
+
+        for mdoc in mdocs:
+            
+            pat = mdoc['pattern'].lower()
+            freq_vec = self.collection_pattern_freq.find_one({'pattern': pat}) 
+            
+            # filter patterns' corpus frequency <= min_count 
+            if not freq_vec:
+                self.logging.warning('pattern freq of "%s" is not found' % (pat))
+                continue
+            elif sum(freq_vec['count'].values()) <= min_count:
+                self.logging.warning('pattern freq of "%s" <= %d' % (pat, min_count))
+                continue
+
+            # build freq vector with all emotions
+            weighted_freq_vec = {}
+            for e in self.emotion_list:
+                if e not in freq_vec['count']: 
+                    freq_vec['count'][e] = 0.0
+
+                w = mdoc['weight'] if weighted else 1.0
+                weighted_freq_vec[e] = freq_vec['count'][e] * w
+
+            pattern_freq_vec[pat] = weighted_freq_vec
+
+        return pattern_freq_vec
+
+    def sum_pattern_freq_vector(self, pf):
+
+        sum_vec = [0] * len(self.emotion_list)
+
+        for freq_vec in pf.values():
+
+            temp_vec = []
+            for e in freq_vec:
+                temp_vec.append(freq_vec[e])
+
+            sum_vec = map(add, sum_vec, temp_vec)
+
+        return sum_vec
+
+
+class FileSplitter(object):
+    """
+    see batchSplitEmotion.py for usage
+    """
+
+    def __init__(self, **kwargs):    
+
+        if 'logger' in kwargs and kwargs['logger']:
+            self.logging = kwargs['logger']
+        else:
+            logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
+            self.logging = logging
+
+    def load(self, file_path):
+        """
+        parameters:
+            file_path: input data path
+        """
+        data = np.load(file_path)
+
+        self.X = data['X']
+        self.y = data['y']
+
+    def split(self, begin, end, samples_in_each_emotion=1000):
+        """
+        parameters:
+            begin:
+            end:
+            samples_in_each_emotion:
+        """
+
+        if begin < 0 or end > samples_in_each_emotion:
+            return False
+
+        # we suppose that the input would be ordered by emotion with 1000 samples in each emotion
+        n_emotion = self.X.shape[0]/samples_in_each_emotion
+
+        self.X_sub = []
+        self.y_sub = []
+
+        for i in range(n_emotion):
+
+            temp_begin = begin + i * samples_in_each_emotion
+            temp_end = end + i * samples_in_each_emotion
+
+            self.X_sub += self.X[temp_begin: temp_end].tolist()
+            self.y_sub += self.y[temp_begin: temp_end].tolist()
+
+    def _subsample_by_idx(self, X, y, idxs):
+        """
+        subsample a 2-D array by row index
+        """
+        _X, _y = [], []
+        for i in idxs:
+            _X.append(X[i])
+            _y.append(y[i])
+
+        return _X, _y
+
+    def merge_negatives(self, idx_dict):
+        """
+        idx_dict: {'emotion': [(index, 'sample_emotion')], ...}
+            i.e., {'tired': [(31201, 'tired'), (100, 'happy')]}
+        """
+
+        self.X_dict = {}
+        self.y_dict = {}
+
+        for i_label, label in enumerate(idx_dict):
+
+            idxs = [i for i,l in idx_dict[label]]
+            self.X_dict[label], self.y_dict[label] = self._subsample_by_idx(self.X_sub, self.y_sub, idxs)
+
+    def _binary_label(self, y, emotion):
+        return [1 if e == emotion else -1 for e in y]
+
+    def dump_by_emotions(self, file_prefix, ext):
+        """
+        save self.X_dict to file_prefix_emotion.npz
+        """
+        for key, value in self.X_dict.iteritems():
+            
+            yb = self._binary_label(self.y_dict[key], key)
+
+            # TODO: .train.npz is a hidden naming rule which should be eliminated
+            fname = file_prefix + '.' + key + ext
+
+            self.logging.debug("dumping X, y to %s" % (fname))
+            np.savez_compressed(fname, X=np.array(value), y=np.array(yb))
+
+
+    def dump(self, file_path, **kwargs):
+        """
+        parameters:
+            file_path: output data path
+
+        option:
+            X: output data X
+            y: output data y
+        """
+        out_X = self.X_sub if 'X' not in kwargs else kwargs['X']
+        out_y = self.y_sub if 'y' not in kwargs else kwargs['y']
+
+        self.logging.debug("dumping X, y to %s" % (file_path))
+        np.savez_compressed(file_path, X=np.array(out_X), y=np.array(out_y))
+
 
 class LoadFile(object):
     """

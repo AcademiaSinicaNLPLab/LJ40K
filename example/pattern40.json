@@ -1,0 +1,7 @@
+[
+    {
+        "feature": "pattern40",
+        "train_dir": "/home/doug919/projects/data/MKLv2/2000samples_4/train/pattern40/800p800n_Xy",
+        "test_file": "/home/doug919/projects/data/MKLv2/2000samples_4/test_8000/pattern40/full.Xy/pattern40.full.Xy.test.npz"
+    }
+]
