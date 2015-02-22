@@ -86,6 +86,7 @@ The following script will fetch data from a MongoDb and save them into the input
 
 	>> python batchFetchPatterns.py ~/projects/data/MKLv2/2000samples_4/pattern40_all.npz
   	>> python batchSplitEmotion.py -b 0 -e 800 -p random_idx.pkl -s -x .train.npz -d ~/projects/data/MKLv2/2000samples    _4/pattern40_all.npz ~/projects/data/MKLv2/2000samples_4/train/pattern40/800p800n_Xy/pattern40.800p800n_Xy
+  	>> python batchSplitEmotion.py -b 800 -e 1000 -d ~/projects/data/MKLv2/2000samples_4/pattern40_all.npz ~/projects/data/MKLv2/2000samples_4/test_8000/pattern40/full.Xy/pattern40.full.Xy.test.npz
 
 		
 ## Programming: feelit/features.py
