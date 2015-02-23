@@ -365,3 +365,17 @@ def dump_list_to_csv(file_name, data):
     w = csv.writer(open(file_name, 'w'))
     for row in data:
         w.writerow(row)
+
+############################################## arguments parsing
+def parse_range(astr):
+    result = set()
+    for part in astr.split(','):
+        x = part.split('-')
+        result.update(range(int(x[0]), int(x[-1]) + 1))
+    return sorted(result)
+
+def parse_list(astr):
+    result = set()
+    for part in astr.split(','):
+        result.add(float(part))
+    return sorted(result)
