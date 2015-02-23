@@ -150,9 +150,6 @@ def getArrayN(array):
 def getShape(arr):
     return arr.shape if arr.shape else arr.any().shape
 
-def toDense(a):
-    densed_a = a if a.shape else a.all().toarray()
-    return densed_a
 
 def isSparse(array):
     """
@@ -166,6 +163,18 @@ def isSparse(array):
         return True
     else:
         return False
+
+def toDense(a):
+    if not a.shape:     
+        # this is a trick invented by Maxis.
+        # when a csr_matrix saved by savez_compressed is loaded by np.load,
+        # we need to use all() to convert the matrix back to csr_matrix type
+        densed_a = a.all().toarray()
+    elif isSparse(a):
+        densed_a = a.toarray()
+    else:
+        densed_a = a
+    return densed_a
 
 def GenerateDeleteIndexes(n, dim, path=None):
     """

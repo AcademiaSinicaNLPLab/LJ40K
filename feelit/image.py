@@ -128,6 +128,7 @@ class ImageDrawer(object):
         output: pruned distirbution
         by @Chenyi-Lee
         """
+
         ## temp_dict -> { 0.3: ['happy', 'angry'], 0.8: ['sleepy'], ... }
         ## (dist)      { 2:   ['bouncy', 'sleepy', 'hungry', 'creative'], 3: ['cheerful']}
         temp_dict = defaultdict( list ) 
@@ -150,6 +151,16 @@ class ImageDrawer(object):
 
         return dict( zip(selected_emotions, [1]*len(selected_emotions)) )
 
+    def is_duplicated(self, collected, current):
+        """
+        In pats.udocID 0, there are some duplicated data.
+        As a temporal solution, I filter them
+        """
+        for x in collected:
+            if x == current and x['weight'] == 1:
+                return True
+        return False
+
     def listPatterns(self, udocID):
         """
         Fetch patterns in the document with given udocID
@@ -158,10 +169,23 @@ class ImageDrawer(object):
         """
         ## fetch
         mdocs = self._co_pats.find({'udocID': udocID}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
+        
         ## group by sent
+        collected = []
         self.Sent2Pats = defaultdict(list)
         for mdoc in mdocs:
+            """
+            In pats.udocID 0, there are some duplicated data.
+            As a temporal solution, I filter them
+            """
+            if self.is_duplicated(collected, mdoc):      
+                #print mdoc
+                continue
+            else:
+                collected.append(mdoc)
+
             self.Sent2Pats[mdoc['usentID']].append( (mdoc['pattern'], mdoc['weight']) )
+
         return self.Sent2Pats
 
     def getPatDists(self, **kwargs):
@@ -188,11 +212,12 @@ class ImageDrawer(object):
         for usentID in self.Sent2Pats:
 
             for pat, weight in self.Sent2Pats[usentID]:
-
+                # treat all patterns in lower case
                 pat = pat.lower()
 
                 mdoc = self._co_lexicon.find_one({'pattern': pat}) if not scoring else self.co_patscore.find_one({'pattern': pat})
 
+                # filter patterns' corpus frequency <= min_count 
                 if not mdoc or sum(mdoc['count'].values()) <= min_count:
                     continue
                 else:
@@ -208,6 +233,7 @@ class ImageDrawer(object):
                     vector[e] = dist[e]*w
 
                 self.dists[usentID].append( vector )
+                
         return self.dists
 
     def aggregate(self, **kwargs):
@@ -243,6 +269,7 @@ class ImageDrawer(object):
             else:
                 vectors = reduce(lambda x,y:x+y, self.dists.values())
 
+        # re-using object
         self.dists = vectors
 
         return self.dists
@@ -381,7 +408,7 @@ class ImageDrawer(object):
         ## get documents
         logging.info('loading udocIDs and emotions')
         docs = sorted([ (x['udocID'], x['emotion']) for x in self._mc[self._db]['docs'].find().batch_size(1024)], key=lambda x:x[0] )
-import pdb; pdb.set_trace()
+
         logging.info('generating destination folders under %s' % (root_path))
         self.generatePaths(root_path, docs, w, h, alpha, base)
 
@@ -413,6 +440,7 @@ import pdb; pdb.set_trace()
             logging.debug('save image of %d under %s' % (udocID, root))
             self.save(fname=fn, root=root)
 
+
 if __name__ == '__main__':
 
     # from feelit.image import ImageDrawer
@@ -426,9 +454,11 @@ if __name__ == '__main__':
     # ID.draw(w=5,h=5)
     # ID.save(fname="38800.rgba.png")
 
+    # alpha == True, percent = 1.0 -> rgba
     ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="pattern", alpha=True, root_path='images')
     # ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="sentence", alpha=True)
 
+    # alpha == False, percent = 0.5 -> rgb
     ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="pattern", alpha=False, percent=0.5, root_path='images')
     # ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="sentence", alpha=False, percent=0.5)
 

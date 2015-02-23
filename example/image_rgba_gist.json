@@ -1,0 +1,7 @@
+[
+    {
+        "feature": "image_rgba_gist",
+        "train_dir": "/home/doug919/mnt/data/MKLv2/2000samples_4/train/image_rgba_gist/800p800n_Xy",
+        "test_file": "/home/doug919/mnt/data/MKLv2/2000samples_4/test_8000/image_rgba_gist/full.Xy/image_rgba_gist.full.Xy.test.npz"
+    }
+]

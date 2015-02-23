@@ -7,15 +7,16 @@ Python modules for analyzing LJ40K emotion data
 
 ![feelit flow](https://cloud.githubusercontent.com/assets/1659204/5698196/fd3873e8-9a42-11e4-803e-81c59a12c143.png)
 
-## batch/batchSimpleTrain.py
+## Training: batch/batchSimpleTrain.py
 
 perform SVM training for LJ40K
 
 1. usage
 	
 	```
-	batchSimpleTraining.py [-h] [-k NFOLD] [-o OUTPUT_NAME] [-e EMOTION_IDS] 
-							[-c C] [-g GAMMA] [-s SCORE_DIR] [-v] [-d] 
+	batchSimpleTraining.py [-h] [-k NFOLD] [-o OUTPUT_NAME] 
+							[-e EMOTION_IDS] [-c C] [-g GAMMA] [-t TEMP_DIR] 
+							[-n] [-v] [-d] 
 							feature_list_file
 	
 	positional arguments:
@@ -42,9 +43,10 @@ perform SVM training for LJ40K
   		-g GAMMA, --gamma GAMMA
                         	RBF parameter (DEFAULT: 1/dimensions). This can be a
                         	list expression, e.g., 0.1,1,10,100
-  		-s SCORE_DIR, --output_misc_dir SCORE_DIR
+  		-t TEMP_DIR, --temp_output_dir TEMP_DIR
                         	output intermediate data of each emotion in the
                         	specified directory (DEFAULT: not output)
+		-n, --no_scaling      do not perform feature scaling (DEFAULT: False)       
   		-v, --verbose       show messages
   		-d, --debug         show debug messages
  	```
@@ -73,11 +75,21 @@ perform SVM training for LJ40K
     
     	```
     	python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 1,10,100,1000 -v feature_list_ex.json
-    	python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 10,30,70,100,300,700,1000 -g 0.0001,0.0003,0.001,0.003,0.01,0.1 TFIDF_TSVD300.json
+    	python batchSimpleTraining.py -k 10 -e 0-39 -o output.csv -c 10,30,70,100,300,700,1000 -g 0.0001,0.0003,0.001,0.003,0.01,0.1 -t temp_dir -v TFIDF_TSVD300.json
 
 		```
+
+## Data: example script for generating 'pattern40'
+
+"pattern40" is the data that sum up the personal event arrays for each sample.
+The following script will fetch data from a MongoDb and save them into the input format of our training program.
+
+	>> python batchFetchPatterns.py ~/projects/data/MKLv2/2000samples_4/pattern40_all.npz
+  	>> python batchSplitEmotion.py -b 0 -e 800 -p random_idx.pkl -s -x .train.npz -d ~/projects/data/MKLv2/2000samples    _4/pattern40_all.npz ~/projects/data/MKLv2/2000samples_4/train/pattern40/800p800n_Xy/pattern40.800p800n_Xy
+  	>> python batchSplitEmotion.py -b 800 -e 1000 -d ~/projects/data/MKLv2/2000samples_4/pattern40_all.npz ~/projects/data/MKLv2/2000samples_4/test_8000/pattern40/full.Xy/pattern40.full.Xy.test.npz
+
 		
-## feelit/features.py
+## Programming: feelit/features.py
 
 1. Load features from files
 
@@ -105,16 +117,8 @@ perform SVM training for LJ40K
 	>> fu.fuse()
 	>> fu.dump()
 	```
-4. Train a classifier
-
-	```python
-	>> from feelit.features import Learning
-	>> l = Learning(verbose=True)
-	>> l.load(path="data/DepPairs_LSA512+TFIDF_LSA512+keyword_LSA512+rgba_gist+rgba_phog.Xy.npz")
-	>> l.kFold()
-	>> l.save(root="results")
-	```
-5. Train, Cross-validation and Test
+	
+4. Train, Cross-validation and Test
 
 	```python
 	>> from feelit.features import Learning
@@ -134,4 +138,3 @@ perform SVM training for LJ40K
 	>>				scaling=True, random_state=np.random.RandomState(0))
 	>> results = learner.predict(X_test, yb_test, weighted_score=True, X_predict_prob=True, auc=True)
 	```
-

@@ -100,22 +100,26 @@ if __name__ == '__main__':
     # main loop
     collect_best_param = {}   # TODO: remove
     all_results = {'emotion': ['Evals'], 'weighted_score': ['Accuracy Rate'], 'auc': ['AUC'], 'X_predict_prob': []}
+
+    ## prepare data
+    paths = [f['train_file'] for f in features]
+
+    preprocessor = DataPreprocessor(logger=logging)
+    preprocessor.loads([f['feature'] for f in features], paths)
+    X_train, y_train, feature_name = preprocessor.fuse()
+
     for emotion_id in args.emotion_ids:    
         
         emotion_name = emotions[emotion_id]
-        paths = get_paths_by_emotion(features, emotion_name)
-
-        ## prepare data
-        preprocessor = DataPreprocessor(logger=logging)
-        preprocessor.loads([f['feature'] for f in features], paths)
-        X_train, y_train, feature_name = preprocessor.fuse()
+        
+        yb_train = preprocessor.get_binary_y_by_emotion(y_train, emotion_name)
 
         ## set default gamma for SVM           
         if not args.gamma:
             args.gamma = [1.0/X_train.shape[1]]
                 
         learner = Learning(logger=logging) 
-        learner.set(X_train, y_train, feature_name)
+        learner.set(X_train, yb_train, feature_name)
 
         ## setup a kFolder
         if args.kfold > 1:

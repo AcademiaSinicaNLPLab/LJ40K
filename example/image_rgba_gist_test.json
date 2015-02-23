@@ -1,0 +1,7 @@
+[
+    {
+        "feature": "image_rgba_gist",
+        "train_file": "/home/doug919/projects/github_repo/LJ40K/images/programs/output/npzs/rgba_gist/rgba_gist_train.npz",
+        "test_file": "/home/doug919/projects/github_repo/LJ40K/images/programs/output/npzs/rgba_gist/rgba_gist_train.npz"
+    }
+]
