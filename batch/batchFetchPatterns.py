@@ -58,18 +58,17 @@ if __name__ == '__main__':
     weighted = True    
     for udocId, emotion in docs:
 
-        if loglevel <= logging.INFO:
-            update_progress_bar(udocId, len(docs))
+        update_progress_bar(udocId, len(docs))
 
         pattern_freq_vec = pf.get_pattern_freq_by_udocId(udocId, min_count, weighted)
 
         # sum vectors horizontally
         if args.scoring:
-            sum_vec = pf.sum_pattern_score_vector(pattern_freq_vec, args.vlambda)
+            emotion_vec = pf.sum_pattern_score_vector(pattern_freq_vec, args.vlambda)
         else:
-            sum_vec = pf.sum_pattern_freq_vector(pattern_freq_vec)
+            emotion_vec = pf.sum_pattern_freq_vector(pattern_freq_vec)
         
-        X.append(sum_vec)
+        X.append(emotion_vec)
         y.append(emotion)
 
     logging.info('save to "%s"' % (args.output_file))
