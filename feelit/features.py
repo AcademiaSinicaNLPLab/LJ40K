@@ -194,8 +194,9 @@ class PatternFetcher(object):
                 temp_vec = freq_vec.values()
 
             sum_vec = map(add, sum_vec, temp_vec)
-            
-        return [v/len(pf) for v in sum_vec]
+
+        return [v/len(pf) for v in sum_vec] if len(pf) != 0 else sum_vec
+
 
     def sum_pattern_freq_vector(self, pf):
         """
