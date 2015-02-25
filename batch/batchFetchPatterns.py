@@ -9,9 +9,13 @@ import argparse
 
 def get_arguments(argv):
 
-    parser = argparse.ArgumentParser(description='fetch patterns from MongoDB')
+    parser = argparse.ArgumentParser(description='fetch patterns from MongoDB and sum up all vectors')
     parser.add_argument('output_file', metavar='output_file', 
-                        help='File name of the ouput .npa file')
+                        help='file name of the ouput .npa file')
+    parser.add_argument('-s', '--scoring', action='store_true', default=False, 
+                        help='use scored pattern emotion array')
+    parser.add_argument('-l', '--vlambda', metavar='LAMBDA', type=float, default=1.0, 
+                        help='a scoring parameter lambda which is useful when "-s" is set (DEFAULT: 1.0)')
     parser.add_argument('-v', '--verbose', action='store_true', default=False, 
                         help='show messages')
     parser.add_argument('-d', '--debug', action='store_true', default=False, 
@@ -59,9 +63,12 @@ if __name__ == '__main__':
         pattern_freq_vec = pf.get_pattern_freq_by_udocId(udocId, min_count, weighted)
 
         # sum vectors horizontally
-        sum_vec = pf.sum_pattern_freq_vector(pattern_freq_vec)
+        if args.scoring:
+            emotion_vec = pf.sum_pattern_score_vector(pattern_freq_vec, args.vlambda)
+        else:
+            emotion_vec = pf.sum_pattern_freq_vector(pattern_freq_vec)
         
-        X.append(sum_vec)
+        X.append(emotion_vec)
         y.append(emotion)
 
     logging.info('save to "%s"' % (args.output_file))

@@ -181,19 +181,76 @@ class PatternFetcher(object):
 
         return pattern_freq_vec
 
-    def sum_pattern_freq_vector(self, pf):
+    def _sum_pattern_vector(self, pf, use_score=False, vlambda=1.0):
 
         sum_vec = [0] * len(self.emotion_list)
 
         for freq_vec in pf.values():
 
-            temp_vec = []
-            for e in freq_vec:
-                temp_vec.append(freq_vec[e])
+            if use_score:
+                score_vec = self.pattern_score(freq_vec, vlambda)
+                temp_vec = score_vec.values()
+            else:
+                temp_vec = freq_vec.values()
 
             sum_vec = map(add, sum_vec, temp_vec)
 
+        ## average the the pattern was proved to be worse
+        #return [v/len(pf) for v in sum_vec] if len(pf) != 0 else sum_vec
         return sum_vec
+
+    def sum_pattern_freq_vector(self, pf):
+        """
+        sum up pattern emotion arrays by occurence frequency
+        """
+        return self._sum_pattern_vector(pf, False)
+
+    def sum_pattern_score_vector(self, pf, vlambda=1.0):
+        """
+        sum up pattern emotion score arrays
+        """
+        return self._sum_pattern_vector(pf, True, vlambda)
+
+    def pattern_score(self, freq_vec, vlambda):
+        """
+        scoring a pattern emotion array
+        """
+
+        emotion_set = set(freq_vec.keys())
+        S_vec = {}        
+        for e in freq_vec:      # to keep the key order as same, we do not loop with set but dict
+
+            ## s(p, e) = f(p, e)
+            s_e = freq_vec[e]
+
+            exclusive_set = emotion_set - set([e])
+            sum_l1 = 0
+            sum_l2 = 0
+
+            for not_e in exclusive_set:             # here we don't care about the order
+                sum_l1 += freq_vec[not_e]
+                sum_l2 += pow(freq_vec[not_e], 2)
+
+            ## beta =
+            #               lambda ^ (L2_Norm(f(p, -e))
+            #
+            beta = pow(vlambda, pow(sum_l2, 0.5))
+
+            ## s(p, -e) = 
+            #                L2_Norm(f(p, -e)) ^ 2
+            #              --------------------------
+            #               L1_Norm(f(p, -e)) + beta
+            #
+            s_not_e = sum_l2 / (sum_l1+beta)
+
+            ## final score S(p, e) = 
+            #                       s(p, e)
+            #               -----------------------
+            #                 (s(p, e) + s(p, -e))
+            #
+            S_vec[e] = s_e / (s_e + s_not_e)
+
+        return S_vec        
 
 
 class FileSplitter(object):
