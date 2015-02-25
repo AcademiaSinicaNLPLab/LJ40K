@@ -195,8 +195,9 @@ class PatternFetcher(object):
 
             sum_vec = map(add, sum_vec, temp_vec)
 
-        return [v/len(pf) for v in sum_vec] if len(pf) != 0 else sum_vec
-
+        ## average the the pattern was proved to be worse
+        #return [v/len(pf) for v in sum_vec] if len(pf) != 0 else sum_vec
+        return sum_vec
 
     def sum_pattern_freq_vector(self, pf):
         """
