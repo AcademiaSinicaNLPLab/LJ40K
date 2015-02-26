@@ -45,11 +45,9 @@ if __name__ == '__main__':
 
     pf = PatternFetcher(logger=logging)
 
-
     logging.debug('fetching doc labels')
     # [(udocId0, emotion0), ...], which is sorted by udocId
     docs = pf.get_all_doc_labels()
-
 
     logging.info('forming patterns')
     X = []
@@ -57,7 +55,7 @@ if __name__ == '__main__':
     min_count = 1
     weighted = True    
     for udocId, emotion in docs:
-
+        
         update_progress_bar(udocId, len(docs))
 
         pattern_freq_vec = pf.get_pattern_freq_by_udocId(udocId, min_count, weighted)

@@ -117,8 +117,10 @@ class PatternFetcher(object):
         ## default collection name
         self.db = 'LJ40K' if 'db' not in kwargs else kwargs['db']
 
-        lexicon = 'lexicon.nested' if 'lexicon' not in kwargs else kwargs['lexicon']
-        pats = 'pats' if 'pats' not in kwargs else kwargs['pats']
+        #lexicon = 'lexicon.nested' if 'lexicon' not in kwargs else kwargs['lexicon']
+        lexicon = 'pats_distr' if 'lexicon' not in kwargs else kwargs['lexicon']        # 'pats_distr' has our PatternV2_40
+        #pats = 'pats' if 'pats' not in kwargs else kwargs['pats']
+        pats = 'pats_stem' if 'pats' not in kwargs else kwargs['pats']                  # 'pats_stem' has our PatternV2_40
         docs = 'docs' if 'docs' not in kwargs else kwargs['docs']
 
         ### connect to mongodb
@@ -153,7 +155,8 @@ class PatternFetcher(object):
         """
 
         pattern_freq_vec = {}
-        mdocs = self.collection_patterns.find({'udocID': udocId}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).sort('usentID', 1).batch_size(512)
+        mdocs = self.collection_patterns.find({'udocID': udocId}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight': 1, 'anchor_idx': 1}).batch_size(512)
+        mdocs.sort([('usentID', pymongo.ASCENDING), ('anchor_idx', pymongo.ASCENDING)])
 
         for mdoc in mdocs:
             
