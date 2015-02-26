@@ -325,8 +325,9 @@ class FileSplitter(object):
         self.y_dict = {}
 
         for i_label, label in enumerate(idx_dict):
-
-            idxs = [i for i,l in idx_dict[label]]
+            
+            #idxs = [i for i,l in idx_dict[label]]      # in order to match Sven's spliter
+            idxs = sorted([i for i,l in idx_dict[label]])
             self.X_dict[label], self.y_dict[label] = self._subsample_by_idx(self.X_sub, self.y_sub, idxs)
 
     def _binary_label(self, y, emotion):
@@ -830,6 +831,7 @@ class DataPreprocessor(object):
             X = hstack(candidate)
               
         y = self.ys[ self.ys.keys()[0] ]
+
         # check all ys are same  
         for k, v in self.ys.items():
             assert (y == v).all()
