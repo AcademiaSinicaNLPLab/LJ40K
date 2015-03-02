@@ -1,6 +1,10 @@
+Version:    0.10.3
+Author:     Douglas
+Date:       2015.2.25
+1. Improve: cancel averaging pattern vectors.
+
 Version:    0.10.2
 Author:     Douglas
 Date:       2015.2.24
-
 1. New: patter scoring
 

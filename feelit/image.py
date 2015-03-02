@@ -97,8 +97,10 @@ class ImageDrawer(object):
         color_theme = 'default' if 'color_theme' not in kwargs else kwargs['color_theme']
 
         ## default collection name
-        lexicon = 'lexicon.nested' if 'lexicon' not in kwargs else kwargs['lexicon']
-        pats = 'pats' if 'pats' not in kwargs else kwargs['pats']
+        #lexicon = 'lexicon.nested' if 'lexicon' not in kwargs else kwargs['lexicon']
+        lexicon = 'pats_distr' if 'lexicon' not in kwargs else kwargs['lexicon']            # patternV2 stem
+        #pats = 'pats' if 'pats' not in kwargs else kwargs['pats']
+        pats = 'pats_stem' if 'pats' not in kwargs else kwargs['pats']                      # PatternV2 stem
         patscore = 'patscore.normal' if 'patscore' not in kwargs else kwargs['patscore']
         self._db = 'LJ40K' if 'db' not in kwargs else kwargs['db']
 
@@ -168,7 +170,8 @@ class ImageDrawer(object):
         output: self.Sent2Pats
         """
         ## fetch
-        mdocs = self._co_pats.find({'udocID': udocID}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1}).batch_size(512)
+        mdocs = self._co_pats.find({'udocID': udocID}, {'_id':0, 'pattern':1, 'usentID': 1, 'weight':1, 'anchor_idx': 1}).batch_size(512)
+        mdocs.sort([('usentID', pymongo.ASCENDING), ('anchor_idx', pymongo.ASCENDING)])
         
         ## group by sent
         collected = []
@@ -459,6 +462,6 @@ if __name__ == '__main__':
     # ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="sentence", alpha=True)
 
     # alpha == False, percent = 0.5 -> rgb
-    ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="pattern", alpha=False, percent=0.5, root_path='images')
+    #ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="pattern", alpha=False, percent=0.5, root_path='images')
     # ID.batchRun(w=1, h=1, scoring=False, weighted=False, min_count=1, base="sentence", alpha=False, percent=0.5)
 

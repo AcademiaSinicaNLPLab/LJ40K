@@ -11,7 +11,7 @@ def get_arguments(argv):
 
     parser = argparse.ArgumentParser(description='fetch patterns from MongoDB and sum up all vectors')
     parser.add_argument('output_file', metavar='output_file', 
-                        help='file name of the ouput .npa file')
+                        help='file name of the ouput .npz file')
     parser.add_argument('-s', '--scoring', action='store_true', default=False, 
                         help='use scored pattern emotion array')
     parser.add_argument('-l', '--vlambda', metavar='LAMBDA', type=float, default=1.0, 
@@ -45,11 +45,9 @@ if __name__ == '__main__':
 
     pf = PatternFetcher(logger=logging)
 
-
     logging.debug('fetching doc labels')
     # [(udocId0, emotion0), ...], which is sorted by udocId
     docs = pf.get_all_doc_labels()
-
 
     logging.info('forming patterns')
     X = []
