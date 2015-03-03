@@ -10,4 +10,5 @@ MKLv2/exp_3/log/log*
 MKLv2/exp_4/log/log*
 MKLv2/drawing/output/*.png
 MKLv2/drawing/output/*.csv
+raw/*
 
