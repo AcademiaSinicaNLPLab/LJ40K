@@ -913,6 +913,7 @@ class Learning(object):
         self.kfold_results = []
         self.Xs = {}
         self.ys = {}
+        self.scaling = False if 'scaling' not in kwargs else kwargs['scaling']
 
     def set(self, X, y, feature_name):
         self.X = X
@@ -959,7 +960,7 @@ class Learning(object):
         # Douglas: this doesn't make sense
         #if utils.isSparse(self.X):
         #    with_mean = False
-        
+
         self.scaling = False if 'scaling' not in kwargs else kwargs['scaling']
         if self.scaling:
             self.scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
@@ -1002,17 +1003,46 @@ class Learning(object):
         self.logging.debug(self.params)
         self.clf.fit(X_train, y_train)
     
+    def dump_model(self, file_name):
+        try:
+            pickle.dump(self.clf, open(file_name, "w"))
+        except ValueError:
+            self.logging.error("failed to dump %s" % (file_name))
+
+    def dump_scaler(self, file_name):
+        try:
+            if self.scaling:
+                pickle.dump(self.scaler, open(file_name, "w"))
+            else:
+                self.logging.warning("scaler doesn't exist")
+        except ValueError:
+            self.logging.error("failed to dump %s" % (file_name))
+
+    def load_model(self, file_name):
+        try:
+            self.clf = pickle.load( open(file_name, "r"))
+        except ValueError:
+            self.logging.error("failed to load %s" % (file_name))
+
+    def load_scaler(self, file_name):
+        try:
+            self.scaler = pickle.load( open(file_name, "r"))
+            if self.scaler:
+                self.scaling = True
+        except ValueError:
+            self.logging.error("failed to load %s" % (file_name))
+
     def predict(self, X_test, y_test, **kwargs):
         '''
         return dictionary of results
         '''
-
+        
         if self.scaling:
             X_test = self.scaler.transform(X_test)
 
         self.logging.info('y_test = %s', str(y_test.shape))
         y_predict = self.clf.predict(X_test)
-        X_predict_prob = self.clf.predict_proba(X_test) if self.prob else 0
+        X_predict_prob = self.clf.predict_proba(X_test) if self.clf.probability else 0
         results = {}
         if 'score' in kwargs and kwargs['score'] == True:
             results.update({'score': self.clf.score(X_test, y_test.tolist())})

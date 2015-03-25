@@ -1,0 +1,12 @@
+[
+    {
+        "feature": "TFIDF_TSVD300",
+        "train_dir": "/home/doug919/projects/data/MKLv2/2000samples_4/train/TFIDF_TSVD300/800p800n_Xy",
+        "test_file": "/home/doug919/projects/data/MKLv2/2000samples_4/TFIDF_TSVD300.Xy.train.npz"
+    },
+    {
+        "feature": "w2v300",
+        "train_dir": "/home/doug919/projects/data/MKLv2/2000samples_4/train/w2v300/800p800n_Xy",
+        "test_file": "/home/doug919/projects/data/MKLv2/2000samples_4/w2v300.Xy.train.npz"
+    }
+]
