@@ -21,6 +21,7 @@ import numpy as np
 from sklearn import svm
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import TruncatedSVD
 from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB, BaseNB
 from sklearn.metrics import roc_curve, auc
 from random import randint
@@ -704,37 +705,62 @@ class FetchMongo(object):
         logging.debug("dumping X, y to %s" % (path))
         np.savez_compressed(path, X=self.X, y=self.y)
 
-class DimensionReduction(object):   
+class DimensionReduction(object):
+
     """
-    DimensionReduction: wrapper of LSA, ICA in scikit-learn
-
-    usage:
-        >> from feelit.features import DimensionReduction
-        >> dr = DimensionReduction(algorithm="LSA")
-        >> _X = dr.reduction(X, n_components=40)
-
-    Parameters
-    ==========
-        algorithm : str
-            support "TruncatedSVD" (or "LSA"), FastICA (or "ICA")
+    See batchTsvd.py for example usage
     """
-    def __init__(self, algorithm):
-        algo = algorithm.strip().lower()
-        if algo in ("truncatedsvd", "lsa"):
-            self.algorithm = "LSA"
-        elif algo in ("fastica", "ica"):
-            self.algorithm = "ICA"
 
-    def reduction(self, X, n_components):
-        if self.algorithm == "LSA":
-            from sklearn.decomposition import TruncatedSVD as LSA
-            worker = LSA(n_components=n_components)
-        elif self.algorithm == "ICA":
-            from sklearn.decomposition import FastICA as ICA
-            worker = ICA(n_components=n_components)
+    def __init__(self, algorithm='truncatedsvd', **kwargs):
 
-        _X = worker.fit_transform(X)
-        return _X
+        if 'logger' in kwargs and kwargs['logger']:
+            self.logging = kwargs['logger']
+        else:
+            logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
+            self.logging = logging
+
+        self.algorithm = None
+        self.n_components = None
+
+        self.tr_X = None
+        self.tr_y = None
+        self.te_X = None
+        self.te_y = None
+        self.tsvd = None
+
+        algorithm = algorithm.strip().lower()
+        if algorithm == "truncatedsvd":
+            self.algorithm = "tsvd"
+        else:  self.logging.debug('Currently, only support truncatedsvd, try to use "truncatedsvd" as the input of the DimensionReduction class')
+
+    def load_file(self,training_data_path,testing_data_path):
+        self.training_data_path = training_data_path
+        tr_data = np.load(training_data_path)
+        self.tr_X, self.tr_y = tr_data['X'], tr_data['y']
+        te_data = np.load(testing_data_path)
+        self.te_X, self.te_y = te_data['X'], te_data['y']
+    
+    def file_sparse_to_dense(self):
+        if utils.isSparse(self.tr_X):
+            self.tr_X = utils.toDense(self.tr_X)
+        if utils.isSparse(self.te_X):
+            self.te_X = utils.toDense(self.te_X)
+
+    def file_dimension_reduction_fit(self, n_components):
+        self.n_components = n_components
+        if self.algorithm == "tsvd":
+            self.tsvd = TruncatedSVD(n_components=self.n_components).fit(self.tr_X)
+
+    def file_dimension_reduction_transform(self):
+            self.tr_X = self.tsvd.transform(self.tr_X)
+            self.te_X = self.tsvd.transform(self.te_X)
+
+    def dump(self, dump_dir):
+        feature_name = self.training_data_path.split('/')[-1].split('.')[0]
+        path = dump_dir + feature_name + '_TSVD'+str(self.n_components)
+        np.savez_compressed(path+'.Xy.train.npz', X=self.tr_X, y=self.tr_y)
+        np.savez_compressed(path+'.Xy.test.npz', X=self.te_X, y=self.te_y)
+
 
 class DataPreprocessor(object):
     """

@@ -2,12 +2,12 @@
 build entire (X,y) to (X_train,y_train), (X_test, y_test) sets
 """
 
-import sys
+import logging, os, sys, pickle
 sys.path.append("../")
 import numpy as np
 from feelit import utils
-import pickle
 from feelit.features import dump
+from scipy.sparse import csr_matrix
 
 def create_gid_to_lid_map(y):
     ## build global idx --> local idx mapping
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     for feature_name in feature_names:
 
         ## load
-        npz_path = "../data/"+feature_name+".Xy.npz"
+        npz_path = "../exp/data/from_mongo/"+feature_name+".Xy.npz"
         print 'loading from',npz_path
         data = np.load(npz_path)
         
@@ -80,8 +80,12 @@ if __name__ == '__main__':
         print 'got train:%d, test:%d samples' % (y_train.shape[0], y_test.shape[0])
 
         ## save
-        train_path = "../data/"+feature_name+".Xy"+".train"+".npz"
-        test_path = "../data/"+feature_name+".Xy"+".test"+".npz"
+        train_path = "../exp/data/from_mongo/"+feature_name+".Xy"+".train"+".npz"
+        test_path = "../exp/data/from_mongo/"+feature_name+".Xy"+".test"+".npz"
+
+        # make sparse matrix
+        X_train = csr_matrix(X_train)
+        X_test = csr_matrix(X_test)
 
         print ' > dumping training to', train_path
         dump(train_path, X=X_train, y=y_train)
