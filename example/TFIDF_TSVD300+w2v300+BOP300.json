@@ -1,0 +1,17 @@
+[
+    {
+        "feature": "TFIDF_TSVD300",
+        "train_dir": "/corpus/LJ40K/data/train/TFIDF_TSVD300/800p800n_Xy",
+        "test_file": "/corpus/LJ40K/data/test/TFIDF_TSVD300/full.Xy/TFIDF_TSVD300.full.Xy.test.npz"
+    },
+    {
+        "feature": "w2v300",
+        "train_dir": "/corpus/LJ40K/data/train/w2v300/800p800n_Xy",
+        "test_file": "/corpus/LJ40K/data/test/w2v300/full.Xy/w2v300.full.Xy.test.npz"
+    },
+    {
+        "feature": "BOP_mincount3_TSVD300",
+        "train_dir": "/corpus/LJ40K/data/train/BOP_mincount3_TSVD300/800p800n_Xy",
+        "test_file": "/corpus/LJ40K/data/test/BOP_mincount3_TSVD300/full.Xy/BOP_mincount3_TSVD300.full.Xy.test.npz"
+    }
+]

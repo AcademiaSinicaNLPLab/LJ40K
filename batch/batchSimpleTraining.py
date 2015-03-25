@@ -1,4 +1,4 @@
-import sys, getopt, json, argparse, os, csv
+import sys, getopt, argparse, os, csv
 import numpy as np
 sys.path.append( "../" )
 from feelit import utils
@@ -7,6 +7,7 @@ from feelit.features import DataPreprocessor
 from sklearn.cross_validation import KFold
 import operator
 import logging
+import pickle
 
 emotions = utils.LJ40K
 
@@ -37,7 +38,7 @@ def get_arguments(argv):
                         help='SVM parameter (DEFAULT: 1). This can be a list expression, e.g., 0.1,1,10,100')
     parser.add_argument('-g', '--gamma', metavar='GAMMA', type=parse_list, default=None, 
                         help='RBF parameter (DEFAULT: 1/dimensions). This can be a list expression, e.g., 0.1,1,10,100')
-    parser.add_argument('-t', '--temp_output_dir', metavar='TEMP_DIR', 
+    parser.add_argument('-t', '--temp_output_dir', metavar='TEMP_DIR', default=None, 
                         help='output intermediate data of each emotion in the specified directory (DEFAULT: not output)')
     parser.add_argument('-n', '--no_scaling', action='store_true', default=False,
                         help='do not perform feature scaling (DEFAULT: False)')
@@ -47,12 +48,6 @@ def get_arguments(argv):
                         help='show debug messages')
     args = parser.parse_args(argv)
     return args
-    
-def get_feature_list(feature_list_file):
-    fp = open(feature_list_file, 'r')
-    feature_list = json.load(fp)
-    fp.close()
-    return feature_list
 
 def get_file_name_by_emtion(train_dir, emotion, **kwargs):
     '''
@@ -84,10 +79,20 @@ def collect_results(all_results, emotion, results):
     all_results['X_predict_prob'].append(results['X_predict_prob'])
     return all_results
 
+def test_writable(file_path):
+    writable = True
+    try:
+        filehandle = open(file_path, 'w')
+    except IOError:
+        writable = False
+        
+    filehandle.close()
+    return writable
+
 if __name__ == '__main__':
     
     args = get_arguments(sys.argv[1:])
-    features = get_feature_list(args.feature_list_file)
+    features = utils.get_feature_list(args.feature_list_file)
 
     if args.debug:
         loglevel = logging.DEBUG
@@ -96,6 +101,17 @@ if __name__ == '__main__':
     else:
         loglevel = logging.ERROR
     logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel) 
+
+    #import pdb; pdb.set_trace();
+    # some pre-checking
+    if args.temp_output_dir is not None and not os.path.isdir(args.temp_output_dir):
+        raise Exception("temp folder %s doesn't exist." % (args.temp_output_dir))
+
+    if os.path.exists(args.output_file_name):
+        logging.warning("file %s will be overwrote." % (args.output_file_name))
+    elif not test_writable(args.output_file_name): 
+        raise Exception("file %s is not writable." % (args.output_file_name))
+
 
     # main loop
     collect_best_param = {}   # TODO: remove
@@ -125,7 +141,7 @@ if __name__ == '__main__':
             scores = {}
             for svmc in args.c:
                 for rbf_gamma in args.gamma:
-                    score = learner.kfold(kfolder, classifier='SVM', kernel='rbf', prob=False, C=svmc, scaling=(not args.no_scaling), gamma=rbf_gamma)
+                    score = learner.kfold(kfolder, classifier='SVM', kernel='rbf', prob=False, C=svmc, scaling=(not args.no_scaling) ,gamma=rbf_gamma)
                     scores.update({(svmc, rbf_gamma): score})
 
             if args.temp_output_dir:
@@ -158,11 +174,18 @@ if __name__ == '__main__':
 
         ## collect results
         all_results = collect_results(all_results, emotion_name, results)
+        if args.temp_output_dir:
+            fpath = os.path.join(args.temp_output_dir, "model_%s_%f_%F.pkl" % (emotion_name, best_C, best_gamma));
+            learner.dump_model(fpath);
+            if not args.no_scaling:
+                fpath = os.path.join(args.temp_output_dir, "scaler_%s.pkl" % (emotion_name));
+                learner.dump_scaler(fpath);
 
     if args.temp_output_dir:
         fpath = os.path.join(args.temp_output_dir, 'best_param.csv')
         utils.dump_dict_to_csv(fpath, collect_best_param)
         fpath = os.path.join(args.temp_output_dir, 'X_predict_prob.csv')    
         utils.dump_list_to_csv(fpath, all_results['X_predict_prob'])
+        
 
     utils.dump_list_to_csv(args.output_file_name, [all_results['emotion'], all_results['weighted_score'], all_results['auc']])   

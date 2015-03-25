@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from math import exp
+import json
 
 LJ40K = ['accomplished', 'aggravated', 'amused', 'annoyed', 'anxious', 'awake', 'blah', 'blank', 'bored', 'bouncy', 'busy', 'calm', 'cheerful', 'chipper', 'cold', 'confused', 'contemplative', 'content', 'crappy', 'crazy', 'creative', 'crushed', 'depressed', 'drained', 'ecstatic', 'excited', 'exhausted', 'frustrated', 'good', 'happy', 'hopeful', 'hungry', 'lonely', 'loved', 'okay', 'pissed off', 'sad', 'sick', 'sleepy', 'tired']
 
@@ -379,3 +380,9 @@ def parse_list(astr):
     for part in astr.split(','):
         result.add(float(part))
     return sorted(result)
+
+def get_feature_list(feature_list_file):
+    fp = open(feature_list_file, 'r')
+    feature_list = json.load(fp)
+    fp.close()
+    return feature_list
