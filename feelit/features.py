@@ -97,7 +97,7 @@ class PatternFetcher(object):
     def __init__(self, **kwargs):
         """
         options:
-            loglevel        : log level
+            logger          : logging instance
             mongo_addr      : mongo db import                           (DEFAULT: 'doraemon.iis.sinica.edu.tw')
             db              : database name                             (DEFAULT: 'LJ40K')
             lexicon         : pattern frequency collection              (DEFAULT: 'lexicon.nested')
@@ -106,9 +106,11 @@ class PatternFetcher(object):
         """
 
         ## process args
-        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)     
+        if 'logger' in kwargs and kwargs['logger']:
+            self.logging = kwargs['logger']
+        else:
+            logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
+            self.logging = logging
 
         ## mongodb settings
         mongo_addr = 'doraemon.iis.sinica.edu.tw' if 'mongo_addr' not in kwargs else kwargs['mongo_addr']
@@ -164,10 +166,10 @@ class PatternFetcher(object):
             
             # filter patterns' corpus frequency <= min_count 
             if not freq_vec:
-                self.logger.warning('pattern freq of "%s" is not found' % (pat))
+                self.logging.warning('pattern freq of "%s" is not found' % (pat))
                 continue
             elif sum(freq_vec['count'].values()) <= min_count:
-                self.logger.warning('pattern freq of "%s" <= %d' % (pat, min_count))
+                self.logging.warning('pattern freq of "%s" <= %d' % (pat, min_count))
                 continue
 
             # build freq vector with all emotions
@@ -261,9 +263,12 @@ class FileSplitter(object):
     """
 
     def __init__(self, **kwargs):    
-        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)   
+
+        if 'logger' in kwargs and kwargs['logger']:
+            self.logging = kwargs['logger']
+        else:
+            logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
+            self.logging = logging
 
     def load(self, file_path):
         """
@@ -340,7 +345,7 @@ class FileSplitter(object):
             # TODO: .train.npz is a hidden naming rule which should be eliminated
             fname = file_prefix + '.' + key + ext
 
-            self.logger.debug("dumping X, y to %s" % (fname))
+            self.logging.debug("dumping X, y to %s" % (fname))
             np.savez_compressed(fname, X=np.array(value), y=np.array(yb))
 
 
@@ -356,7 +361,7 @@ class FileSplitter(object):
         out_X = self.X_sub if 'X' not in kwargs else kwargs['X']
         out_y = self.y_sub if 'y' not in kwargs else kwargs['y']
 
-        self.logger.debug("dumping X, y to %s" % (file_path))
+        self.logging.debug("dumping X, y to %s" % (file_path))
         np.savez_compressed(file_path, X=np.array(out_X), y=np.array(out_y))
 
 
@@ -386,9 +391,8 @@ class LoadFile(object):
         Parameters:
             verbose: True/False
         """        
-        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)  
+        loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
+        logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)        
         
         self.Xs = {}
         self.ys = {}
@@ -409,7 +413,7 @@ class LoadFile(object):
         Returns:
             <np.array> [ [f1,...fn], [f1,...,fn],... ]
         """
-        self.logger.debug('loading %s' % (path))
+        logging.debug('loading %s' % (path))
         data_range = "all" if not 'data_range' in kwargs else kwargs["data_range"]
 
         ## load csv files to <float> type
@@ -417,7 +421,7 @@ class LoadFile(object):
 
         ## replace None -> 0, -1 -> 0, "NaN" -> 0
         if "amend" in kwargs and kwargs["amend"] == True:
-            self.logger.debug('amending %s' % (path))
+            logging.debug('amending %s' % (path))
             extra = {-1: 0, None: 0} if "extra" not in kwargs else kwargs["extra"]
             utils.all_to_float(lines, extra=extra)
 
@@ -460,7 +464,7 @@ class LoadFile(object):
         for fn in sorted(fns):
             self.load( path=os.path.join(root, fn), **kwargs)
 
-        self.logger.debug("All loaded. Concatenate Xs and ys")
+        logging.debug("All loaded. Concatenate Xs and ys")
         self.concatenate()
 
     def concatenate(self):
@@ -480,7 +484,7 @@ class LoadFile(object):
     def dump(self, path, ext=".npz"):
         ## amend path
         path = path if not ext or path.endswith(ext) else path+ext 
-        self.logger.debug("dumping X, y to %s" % (path))
+        logging.debug("dumping X, y to %s" % (path))
         np.savez_compressed(path, X=self.X, y=self.y)
 
 class FetchMongo(object):
@@ -502,9 +506,8 @@ class FetchMongo(object):
         Parameters:
             verbose: True/False
         """
-        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)     
+        loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
+        logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)
 
         self._db = None
         self._fetched = set()
@@ -539,10 +542,10 @@ class FetchMongo(object):
             available_settings = self._db[collection_name].distinct('setting') 
 
             if setting_id in available_settings:
-                self.logger.debug("use setting_id %s in collection %s" % (setting_id, collection_name) )
+                logging.debug("use setting_id %s in collection %s" % (setting_id, collection_name) )
                 return True
             else:
-                self.logger.error("can't find setting_id %s in collection %s" % (setting_id, collection_name) )
+                logging.error("can't find setting_id %s in collection %s" % (setting_id, collection_name) )
                 return False
 
     def fetch(self, feature_name, setting_id, collection_name="auto", label_name="emotion", data_range="all"):
@@ -597,16 +600,16 @@ class FetchMongo(object):
 
         if not setting_id:
             ## no setting_id, fetch all
-            self.logger.debug( "no setting_id specified, fetch all from %s" % (collection_name) )
+            logging.debug( "no setting_id specified, fetch all from %s" % (collection_name) )
 
             cur = self._db[collection_name].find( { "$query":{}, "$orderby": { "udocID": 1 } } ).batch_size(1024)
             # cur = self._db[collection_name].find()
         else:
             ## with setting_id
-            self.logger.debug( "fetch from %s with setting_id %s" % (collection_name, setting_id) )
+            logging.debug( "fetch from %s with setting_id %s" % (collection_name, setting_id) )
             cur = self._db[collection_name].find( { "$query": {'setting': setting_id }, "$orderby": { "udocID": 1 } } ).batch_size(1024)
 
-        self.logger.info("fetching documents from %s" % (collection_name))
+        logging.info("fetching documents from %s" % (collection_name))
         
 
         ## amend data_range
@@ -622,14 +625,14 @@ class FetchMongo(object):
             range_type = "gte"
             data_range = int(data_range.replace(">", ""))
         else:
-            self.logger.error("check the data_range format")
+            logging.error("check the data_range format")
             return False
 
 
         for i, mdoc in enumerate(cur):
 
             if 'feature' not in mdoc:
-                self.logger.warn( "invalid format in the mongo document, skip this one." )
+                logging.warn( "invalid format in the mongo document, skip this one." )
                 continue
 
             ## filter by data_range
@@ -637,17 +640,17 @@ class FetchMongo(object):
             if range_type == "lt":
                 ## e.g., data_range=800
                 if mdoc['ldocID'] >= data_range:
-                    self.logger.debug('mdoc %d skipped' % ( i+1 ))
+                    logging.debug('mdoc %d skipped' % ( i+1 ))
                     continue
             elif range_type == "gte":
                 ## e.g., data_range=">800"
                 if mdoc['ldocID'] < data_range:
-                    self.logger.debug('mdoc %d skipped' % ( i+1 ))
+                    logging.debug('mdoc %d skipped' % ( i+1 ))
                     continue
             elif range_type == "all":
                 pass
             else:
-                self.logger.error("unknown range_type")
+                logging.error("unknown range_type")
                 return False
             
             ## get (and tranform) features into dictionary
@@ -666,7 +669,7 @@ class FetchMongo(object):
             self.feature_dict_lst.append( feature_dict )
             self.label_lst.append( label )
 
-            self.logger.debug('mdoc %d fetched' % ( i+1 ))
+            logging.debug('mdoc %d fetched' % ( i+1 ))
             
         self._fetched.add( (collection_name, setting_id) )
 
@@ -699,7 +702,7 @@ class FetchMongo(object):
     def dump(self, path, ext=".npz"):
         ## amend path
         path = path if not ext or path.endswith(ext) else path+ext 
-        self.logger.debug("dumping X, y to %s" % (path))
+        logging.debug("dumping X, y to %s" % (path))
         np.savez_compressed(path, X=self.X, y=self.y)
 
 class DimensionReduction(object):
@@ -710,9 +713,11 @@ class DimensionReduction(object):
 
     def __init__(self, algorithm='truncatedsvd', **kwargs):
 
-        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__) 
+        if 'logger' in kwargs and kwargs['logger']:
+            self.logging = kwargs['logger']
+        else:
+            logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
+            self.logging = logging
 
         self.algorithm = None
         self.n_components = None
@@ -726,7 +731,7 @@ class DimensionReduction(object):
         algorithm = algorithm.strip().lower()
         if algorithm == "truncatedsvd":
             self.algorithm = "tsvd"
-        else:  self.logger.debug('Currently, only support truncatedsvd, try to use "truncatedsvd" as the input of the DimensionReduction class')
+        else:  self.logging.debug('Currently, only support truncatedsvd, try to use "truncatedsvd" as the input of the DimensionReduction class')
 
     def load_file(self,training_data_path,testing_data_path):
         self.training_data_path = training_data_path
@@ -771,18 +776,15 @@ class DataPreprocessor(object):
     def __init__(self, **kwargs):
         """
         options:
-            loglevel: log level
+            logger: logging instance
         """
-        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__) 
+        self.clear()
 
-        self.clear(keep_scaler=False)
-
-        self.with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
-        self.with_std = True if 'with_std' not in kwargs else kwargs['with_std']
-        self.do_scaling = True if 'do_scaling' not in kwargs else kwargs['do_scaling']
-
+        if 'logger' in kwargs and kwargs['logger']:
+            self.logging = kwargs['logger']
+        else:
+            logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
+            self.logging = logging
     '''
     def full_matrix(self, X):
         """
@@ -796,7 +798,7 @@ class DataPreprocessor(object):
         we check isSparse by checking if it is possible to get the list len()
         """
         if X is not None and utils.isSparse(X):
-            self.logger.info('sparse matrix representation detected, transform it to full representation')
+            self.logging.info('sparse matrix representation detected, transform it to full representation')
         return utils.toDense(X)
 
     def replace_nan(self, X, NaN=0.0, NONE=0.0):
@@ -810,10 +812,10 @@ class DataPreprocessor(object):
                         continue
                     else:                        
                         if X[i][j] is None:
-                            self.logger.debug('element None detected in X[%d][%d]' % (i,j))
+                            self.logging.debug('element None detected in X[%d][%d]' % (i,j))
                             X[i][j] = NONE
                         elif X[i][j] == 'NaN':
-                            self.logger.debug('element "NaN" detected in X[%d][%d]' % (i,j))
+                            self.logging.debug('element "NaN" detected in X[%d][%d]' % (i,j))
                             X[i][j] = NaN
                         elif type(X[i][j]) == int:
                             X[i][j] = float(X[i][j]) 
@@ -821,34 +823,25 @@ class DataPreprocessor(object):
                             X[i][j] = NONE
         return X
     '''
-    def loads(self, features, paths, do_fit=False):
+    def loads(self, features, paths):
         """
         Input:
             paths       : list of files to be concatenated
             features:   : list of feature names
         """
         for i, path in enumerate(paths):
-            self.logger.info('loading data from %s' % (path))
+            self.logging.info('loading data from %s' % (path))
             data = np.load(path)            
 
             #X =  self.replace_nan( self.full_matrix(data['X']) )
             X = data['X']
-
-            if self.do_scaling and do_fit:
-                self.logger.debug("do fit and transform for %s, with_mean=%d, with_std=%d" % (features[i], self.with_mean, self.with_std))
-                self.scalers[features[i]] = StandardScaler(with_mean=self.with_mean, with_std=self.with_std)
-                X = self.scalers[features[i]].fit_transform(X)
-            elif self.do_scaling and not do_fit:
-                self.logger.debug("do transform for %s, with_mean=%d, with_std=%d" % (features[i], self.with_mean, self.with_std))
-                X = self.scalers[features[i]].transform(X)
-
             self.Xs[features[i]] = X
             self.ys[features[i]] = data['y'];
-            
-            self.logger.info('feature "%s", %dx%d' % (features[i], X.shape[0], X.shape[1]))
+
+            self.logging.info('feature "%s", %dx%d' % (features[i], X.shape[0], X.shape[1]))
 
             self.feature_name.append(features[i])
-        
+
     def fuse(self):
         """
         Output:
@@ -862,9 +855,7 @@ class DataPreprocessor(object):
             from scipy.sparse import hstack
             candidate = tuple([arr.all() for arr in self.Xs.values()])
             X = hstack(candidate)
-
-        assert X.size != 0
-
+              
         y = self.ys[ self.ys.keys()[0] ]
 
         # check all ys are same  
@@ -872,16 +863,14 @@ class DataPreprocessor(object):
             assert (y == v).all()
         feature_name = '+'.join(self.feature_name)
 
-        self.logger.debug('fused feature name is "%s", %dx%d' % (feature_name, X.shape[0], X.shape[1]))
+        self.logging.debug('fused feature name is "%s", %dx%d' % (feature_name, X.shape[0], X.shape[1]))
 
         return X, y, feature_name
 
-    def clear(self, keep_scaler):
+    def clear(self):
         self.Xs = {}
         self.ys = {}
         self.feature_name = []
-        if not keep_scaler:
-            self.scalers = {}
 
     def get_binary_y_by_emotion(self, y, emotion):
         '''
@@ -889,19 +878,6 @@ class DataPreprocessor(object):
         '''       
         yb = np.array([1 if val == emotion else -1 for val in y])
         return yb
-
-    def dump_scalers(self, file_name):
-        try:
-            pickle.dump(self.scalers, open(file_name, "w"))
-        except ValueError:
-            self.logger.error("failed to dump %s" % (file_name))
-
-    def load_scalers(self, file_name):
-        try:
-            self.scalers = pickle.load( open(file_name, "r"))
-            self.do_scaling = True
-        except ValueError:
-            self.logger.error("failed to load %s" % (file_name))
 
 class Learning(object):
     """
@@ -915,26 +891,29 @@ class Learning(object):
         >>  for gamma in gammas:
         >>      score = learner.kFold(kfolder, classifier='SVM', 
         >>                          kernel='rbf', prob=False, 
-        >>                          C=c, gamma=gamma)
+        >>                          C=c, scaling=True, gamma=gamma)
         >>      scores.update({(c, gamma): score})
         >>
         >> best_C, best_gamma = max(scores.iteritems(), key=operator.itemgetter(1))[0]
         >> learner.train(classifier='SVM', kernel='rbf', prob=True, C=best_C, gamma=best_gamma, 
-        >>              random_state=np.random.RandomState(0))
+        >>              scaling=True, random_state=np.random.RandomState(0))
         >> results = learner.predict(X_test, yb_test, weighted_score=True, X_predict_prob=True, auc=True)
     """
 
     def __init__(self, X=None, y=None, **kwargs):
 
-        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)     
+        if 'logger' in kwargs and kwargs['logger']:
+            self.logging = kwargs['logger']
+        else:
+            logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.ERROR)  
+            self.logging = logging    
 
         self.X = X
         self.y = y
         self.kfold_results = []
         self.Xs = {}
         self.ys = {}
+        self.scaling = False if 'scaling' not in kwargs else kwargs['scaling']
 
     def set(self, X, y, feature_name):
         self.X = X
@@ -953,6 +932,7 @@ class Learning(object):
             classifier: 'SVM', 'SGD', 'GaussianNB'
             with_mean: True/False
             with_std: True/False
+            scaling: True/False
             prob: True/False. Esimate probability during training
             random_state: seed, RandomState instance or None; for probability estimation
             kernel: 'rbf', ...
@@ -970,8 +950,8 @@ class Learning(object):
         #     y_train = np.delete(self.y, delete, axis=0)
         # else:
 
-        self.logger.debug("%d samples x %d features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
-        self.logger.debug("%d samples in y_train" % ( y_train.shape[0] ))
+        self.logging.debug("%d samples x %d features in X_train" % ( X_train.shape[0], X_train.shape[1] ))
+        self.logging.debug("%d samples in y_train" % ( y_train.shape[0] ))
 
         with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
         with_std = True if 'with_std' not in kwargs else kwargs['with_std']
@@ -980,6 +960,13 @@ class Learning(object):
         # Douglas: this doesn't make sense
         #if utils.isSparse(self.X):
         #    with_mean = False
+
+        self.scaling = False if 'scaling' not in kwargs else kwargs['scaling']
+        if self.scaling:
+            self.scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
+            ## apply scaling on X
+            self.logging.debug("applying a standard scaling with_mean=%d, with_std=%d" % (with_mean, with_std))
+            X_train = self.scaler.fit_transform(X_train)
 
         ## determine whether using predict or predict_proba
         self.prob = False if 'prob' not in kwargs else kwargs["prob"]
@@ -1013,50 +1000,70 @@ class Learning(object):
         else:
             raise Exception("currently only support SVM, SGD and GaussianNB classifiers")
 
-        self.logger.debug(self.params)
+        self.logging.debug(self.params)
         self.clf.fit(X_train, y_train)
     
     def dump_model(self, file_name):
         try:
             pickle.dump(self.clf, open(file_name, "w"))
         except ValueError:
-            self.logger.error("failed to dump %s" % (file_name))
+            self.logging.error("failed to dump %s" % (file_name))
+
+    def dump_scaler(self, file_name):
+        try:
+            if self.scaling:
+                pickle.dump(self.scaler, open(file_name, "w"))
+            else:
+                self.logging.warning("scaler doesn't exist")
+        except ValueError:
+            self.logging.error("failed to dump %s" % (file_name))
 
     def load_model(self, file_name):
         try:
             self.clf = pickle.load( open(file_name, "r"))
         except ValueError:
-            self.logger.error("failed to load %s" % (file_name))
+            self.logging.error("failed to load %s" % (file_name))
+
+    def load_scaler(self, file_name):
+        try:
+            self.scaler = pickle.load( open(file_name, "r"))
+            if self.scaler:
+                self.scaling = True
+        except ValueError:
+            self.logging.error("failed to load %s" % (file_name))
 
     def predict(self, X_test, y_test, **kwargs):
         '''
         return dictionary of results
         '''
+        
+        if self.scaling:
+            X_test = self.scaler.transform(X_test)
 
-        self.logger.info('y_test = %s', str(y_test.shape))
+        self.logging.info('y_test = %s', str(y_test.shape))
         y_predict = self.clf.predict(X_test)
         X_predict_prob = self.clf.predict_proba(X_test) if self.clf.probability else 0
         results = {}
         if 'score' in kwargs and kwargs['score'] == True:
             results.update({'score': self.clf.score(X_test, y_test.tolist())})
-            self.logger.info('score = %f', results['score'])
+            self.logging.info('score = %f', results['score'])
 
         if 'weighted_score' in kwargs and kwargs['weighted_score'] == True:
             results.update({'weighted_score': self._weighted_score(y_test.tolist(), y_predict)})
-            self.logger.info('weighted_score = %f', results['weighted_score'])
+            self.logging.info('weighted_score = %f', results['weighted_score'])
 
         if 'y_predict' in kwargs and kwargs['y_predict'] == True:
             results.update({'y_predict': y_predict})
-            self.logger.info('y_predict = %f', results['y_predict'])
+            self.logging.info('y_predict = %f', results['y_predict'])
 
         if 'X_predict_prob' in kwargs and kwargs['X_predict_prob'] == True:            
             results.update({'X_predict_prob': X_predict_prob[:, 1]})
-            self.logger.info('X_predict_prob = %s', str(results['X_predict_prob']))
+            self.logging.info('X_predict_prob = %s', str(results['X_predict_prob']))
 
         if 'auc' in kwargs and kwargs['auc'] == True:
             fpr, tpr, thresholds = roc_curve(y_test, X_predict_prob[:, 1])
             results.update({'auc': auc(fpr, tpr)})
-            self.logger.info('auc = %f', results['auc'])
+            self.logging.info('auc = %f', results['auc'])
 
         return results     
     
@@ -1094,22 +1101,22 @@ class Learning(object):
             ## amend dense matrix: replace NaN and None with float values
         #    self.check_and_amend()
         #else:
-        #    self.logger.debug("skip the amending process")
+        #    self.logging.debug("skip the amending process")
 
         sum_score = 0.0
         for (i, (train_index, test_index)) in enumerate(kfolder):
 
-            self.logger.info("cross-validation fold %d: train=%d, test=%d" % (i, len(train_index), len(test_index)))
+            self.logging.info("cross-validation fold %d: train=%d, test=%d" % (i, len(train_index), len(test_index)))
 
             X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
             self._train(X_train, y_train, **kwargs)
 
             score = self.predict(X_test, y_test, score=True)['score']
-            self.logger.info('score = %.5f' % (score))
+            self.logging.info('score = %.5f' % (score))
             sum_score += score
 
         mean_score = sum_score/len(kfolder)
-        self.logger.info('*** C = %f, mean_score = %f' % (kwargs['C'], mean_score))
+        self.logging.info('*** C = %f, mean_score = %f' % (kwargs['C'], mean_score))
         return mean_score
 
 
@@ -1124,7 +1131,7 @@ class Learning(object):
             th = int(each_class.replace(">",""))
             to_delete = [gidx for gidx, lidx in self.idx_map.iteritems() if lidx < th]
         else:
-            self.logger.error('usage: e.g., l.slice(each_class=">800")')
+            self.logging.error('usage: e.g., l.slice(each_class=">800")')
             return False
 
         return to_delete        
@@ -1164,7 +1171,7 @@ class Learning(object):
             if feature_name:
                 self.feature_name = feature_name
             else:
-                self.logger.warn("speficy the feature_name for the file to be saved")
+                self.logging.warn("speficy the feature_name for the file to be saved")
                 return False
 
         tests, predicts, scores, classes = [], [], [], []
@@ -1188,7 +1195,7 @@ class Learning(object):
             if feature_name:
                 self.feature_name = feature_name
             else:
-                self.logger.warn("speficy the feature_name for the file to be saved")
+                self.logging.warn("speficy the feature_name for the file to be saved")
                 return False
 
         subfolder = self.feature_name
@@ -1219,19 +1226,19 @@ class Learning(object):
             if feature_name:
                 self.feature_name = feature_name
             else:
-                self.logger.warn("speficy the feature_name for the file to be saved")
+                self.logging.warn("speficy the feature_name for the file to be saved")
                 return False
         out_path = os.path.join(root, self.feature_name+"."+self.params+".model" )
         out_dir = os.path.dirname(out_path)
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
         pickle.dump(self.clf, open(out_path, "wb"), protocol=2)
-        self.logger.info("dump model to %s" %(out_path))
+        self.logging.info("dump model to %s" %(out_path))
 
         return out_path
 
     def load_model(self, path):
-        self.logger.info("loading model from %s" % (path))
+        self.logging.info("loading model from %s" % (path))
         self.clf = pickle.load(open(path))
 
 
