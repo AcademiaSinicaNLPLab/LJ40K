@@ -100,7 +100,8 @@ if __name__ == '__main__':
         loglevel = logging.INFO
     else:
         loglevel = logging.ERROR
-    logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel) 
+    logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel) 
+    logger = logging.getLogger(__name__)
 
     #import pdb; pdb.set_trace();
     # some pre-checking
@@ -108,7 +109,7 @@ if __name__ == '__main__':
         raise Exception("temp folder %s doesn't exist." % (args.temp_output_dir))
 
     if os.path.exists(args.output_file_name):
-        logging.warning("file %s will be overwrote." % (args.output_file_name))
+        logger.warning("file %s will be overwrote." % (args.output_file_name))
     elif not test_writable(args.output_file_name): 
         raise Exception("file %s is not writable." % (args.output_file_name))
 
@@ -122,7 +123,7 @@ if __name__ == '__main__':
         paths = get_paths_by_emotion(features, emotion_name)
 
         ## prepare data
-        preprocessor = DataPreprocessor(logger=logging)
+        preprocessor = DataPreprocessor(loglevel=loglevel)
         preprocessor.loads([f['feature'] for f in features], paths)
         X_train, y_train, feature_name = preprocessor.fuse()
 
@@ -130,7 +131,7 @@ if __name__ == '__main__':
         if not args.gamma:
             args.gamma = [1.0/X_train.shape[1]]
                 
-        learner = Learning(logger=logging) 
+        learner = Learning(loglevel=loglevel) 
         learner.set(X_train, y_train, feature_name)
 
         ## setup a kFolder
