@@ -2,6 +2,7 @@
 
 from math import exp
 import json
+import os
 
 LJ40K = ['accomplished', 'aggravated', 'amused', 'annoyed', 'anxious', 'awake', 'blah', 'blank', 'bored', 'bouncy', 'busy', 'calm', 'cheerful', 'chipper', 'cold', 'confused', 'contemplative', 'content', 'crappy', 'crazy', 'creative', 'crushed', 'depressed', 'drained', 'ecstatic', 'excited', 'exhausted', 'frustrated', 'good', 'happy', 'hopeful', 'hungry', 'lonely', 'loved', 'okay', 'pissed off', 'sad', 'sick', 'sleepy', 'tired']
 
@@ -386,3 +387,37 @@ def get_feature_list(feature_list_file):
     feature_list = json.load(fp)
     fp.close()
     return feature_list
+
+def get_file_name_by_emtion(train_dir, emotion, **kwargs):
+    '''
+    serach the train_dir and get the file name with the specified emotion and extension
+    '''
+    ext = '.npz' if 'ext' not in kwargs else kwargs['ext']
+    files = [fname for fname in os.listdir(train_dir) if os.path.isfile(os.path.join(train_dir, fname))]
+
+    # target file is the file that contains the emotion string and has the desginated extension
+    for fname in files:
+        target = None
+        if fname.endswith(ext) and fname.find(emotion) != -1:
+            target = fname
+            break
+    return target
+
+def get_paths_by_emotion(features, emotion_name):
+    paths = []
+    for feature in features:         
+        fname = get_file_name_by_emtion(feature['train_dir'], emotion_name, exp='.npz')
+        if fname is not None:
+            paths.append(os.path.join(feature['train_dir'], fname))
+    return paths
+
+def test_writable(file_path):
+    writable = True
+    try:
+        filehandle = open(file_path, 'w')
+    except IOError:
+        writable = False
+        
+    filehandle.close()
+    return writable
+

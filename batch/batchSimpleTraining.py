@@ -1,4 +1,4 @@
-import sys, getopt, argparse, os, csv
+import sys, argparse, os, csv
 import numpy as np
 sys.path.append( "../" )
 from feelit import utils
@@ -11,19 +11,6 @@ import pickle
 
 emotions = utils.LJ40K
 
-def parse_range(astr):
-    result = set()
-    for part in astr.split(','):
-        x = part.split('-')
-        result.update(range(int(x[0]), int(x[-1]) + 1))
-    return sorted(result)
-
-def parse_list(astr):
-    result = set()
-    for part in astr.split(','):
-        result.add(float(part))
-    return sorted(result)
-
 def get_arguments(argv):
     parser = argparse.ArgumentParser(description='perform SVM training for LJ40K')
     parser.add_argument('feature_list_file', metavar='feature_list_file', 
@@ -32,11 +19,11 @@ def get_arguments(argv):
                         help='k for kfold cross-validtion. If the value less than 2, we skip the cross-validation and choose the first parameter of -c and -g (DEFAULT: 10)')
     parser.add_argument('-o', '--output_file_name', metavar='OUTPUT_NAME', default='out.csv', 
                         help='path to the output file in csv format (DEFAULT: out.csv)')
-    parser.add_argument('-e', '--emotion_ids', metavar='EMOTION_IDS', type=parse_range, default=[0], 
+    parser.add_argument('-e', '--emotion_ids', metavar='EMOTION_IDS', type=utils.parse_range, default=[0], 
                         help='a list that contains emotion ids ranged from 0-39 (DEFAULT: 0). This can be a range expression, e.g., 3-6,7,8,10-15')
-    parser.add_argument('-c', metavar='C', type=parse_list, default=[1.0], 
+    parser.add_argument('-c', metavar='C', type=utils.parse_list, default=[1.0], 
                         help='SVM parameter (DEFAULT: 1). This can be a list expression, e.g., 0.1,1,10,100')
-    parser.add_argument('-g', '--gamma', metavar='GAMMA', type=parse_list, default=None, 
+    parser.add_argument('-g', '--gamma', metavar='GAMMA', type=utils.parse_list, default=None, 
                         help='RBF parameter (DEFAULT: 1/dimensions). This can be a list expression, e.g., 0.1,1,10,100')
     parser.add_argument('-t', '--temp_output_dir', metavar='TEMP_DIR', default=None, 
                         help='output intermediate data of each emotion in the specified directory (DEFAULT: not output)')
@@ -49,45 +36,12 @@ def get_arguments(argv):
     args = parser.parse_args(argv)
     return args
 
-def get_file_name_by_emtion(train_dir, emotion, **kwargs):
-    '''
-    serach the train_dir and get the file name with the specified emotion and extension
-    '''
-    ext = '.npz' if 'ext' not in kwargs else kwargs['ext']
-    files = [fname for fname in os.listdir(train_dir) if os.path.isfile(os.path.join(train_dir, fname))]
-
-    # target file is the file that contains the emotion string and has the desginated extension
-    for fname in files:
-        target = None
-        if fname.endswith(ext) and fname.find(emotion) != -1:
-            target = fname
-            break
-    return target
-
-def get_paths_by_emotion(features, emotion_name):
-    paths = []
-    for feature in features:         
-        fname = get_file_name_by_emtion(feature['train_dir'], emotion_name, exp='.npz')
-        if fname is not None:
-            paths.append(os.path.join(feature['train_dir'], fname))
-    return paths
-
 def collect_results(all_results, emotion, results):
     all_results['emotion'].append(emotion)
     all_results['weighted_score'].append(results['weighted_score'])
     all_results['auc'].append(results['auc'])
     all_results['X_predict_prob'].append(results['X_predict_prob'])
     return all_results
-
-def test_writable(file_path):
-    writable = True
-    try:
-        filehandle = open(file_path, 'w')
-    except IOError:
-        writable = False
-        
-    filehandle.close()
-    return writable
 
 if __name__ == '__main__':
     
@@ -103,14 +57,13 @@ if __name__ == '__main__':
     logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel) 
     logger = logging.getLogger(__name__)
 
-    #import pdb; pdb.set_trace();
     # some pre-checking
     if args.temp_output_dir is not None and not os.path.isdir(args.temp_output_dir):
         raise Exception("temp folder %s doesn't exist." % (args.temp_output_dir))
 
     if os.path.exists(args.output_file_name):
         logger.warning("file %s will be overwrote." % (args.output_file_name))
-    elif not test_writable(args.output_file_name): 
+    elif not utils.test_writable(args.output_file_name): 
         raise Exception("file %s is not writable." % (args.output_file_name))
 
 
@@ -120,7 +73,7 @@ if __name__ == '__main__':
     for emotion_id in args.emotion_ids:    
         
         emotion_name = emotions[emotion_id]
-        paths = get_paths_by_emotion(features, emotion_name)
+        paths = utils.get_paths_by_emotion(features, emotion_name)
 
         ## prepare data
         preprocessor = DataPreprocessor(loglevel=loglevel)

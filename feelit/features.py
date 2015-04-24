@@ -359,7 +359,6 @@ class FileSplitter(object):
         self.logger.debug("dumping X, y to %s" % (file_path))
         np.savez_compressed(file_path, X=np.array(out_X), y=np.array(out_y))
 
-
 class LoadFile(object):
     """
     Fetch features from files
@@ -872,6 +871,16 @@ class DataPreprocessor(object):
         '''       
         yb = np.array([1 if val == emotion else -1 for val in y])
         return yb
+
+    def get_examples_by_polarities(self, X, y):
+        """
+            input:  X: feature vectors
+                    y: should be a list of 1 or -1
+            output: (positive X, negative X)
+        """
+        idx_pos = [i for i, v in enumerate(y) if v==1]
+        idx_neg = [i for i, v in enumerate(y) if v<=0]
+        return X[idx_pos], X[idx_neg]
 
 class Learning(object):
     """
