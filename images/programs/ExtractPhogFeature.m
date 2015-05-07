@@ -11,7 +11,7 @@ function [] = ExtractPhogFeature(source_dir, dest_dir)
     dirInfo = dir(source_dir);                      % list dir
     isub = [dirInfo(:).isdir];                      % returns logical vector
     nameFolds = {dirInfo(isub).name}';                    % get names
-    nameFolds(ismember(nameFolds,{'.','..'})) = []; % remove . and ..
+    nameFolds(ismember(nameFolds,{'.','..','@eaDir'})) = []; % remove . and ..
     
     for i = 1:size(nameFolds,1)
         emotion = nameFolds{i};
