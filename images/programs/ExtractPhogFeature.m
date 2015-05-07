@@ -26,9 +26,12 @@ function [] = ExtractPhogFeature(source_dir, dest_dir)
             filenames{f} = fnames(f).name;
         end
         
+        % sort the file name in natural order
+        [sorted_fnames, idxs] = sort_nat(filenames);
+
         % extract features
         disp( ['extracting features from ', fld_path] );
-        phog_gen(filenames, fld_path, dest_dir);
+        phog_gen(sorted_fnames, fld_path, dest_dir);
     end
 
 
