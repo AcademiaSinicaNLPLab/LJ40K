@@ -27,7 +27,7 @@ function []=demo(imageFileList, imageBaseDir, dataBaseDir)
 
         imageFName = fullfile(imageBaseDir, imageFName);
         img = imread(imageFName);
-
+        
         %% Parameters:
         Nblocks = 4;
         imageSize = size(img,1); 
