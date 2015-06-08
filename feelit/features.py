@@ -1066,6 +1066,10 @@ class Learning(object):
             results.update({'auc': auc(fpr, tpr)})
             self.logger.info('auc = %f', results['auc'])
 
+        if 'decision_value' in kwargs and kwargs['decision_value'] == True:
+            results.update({'decision_value': self.clf.decision_function(X_test)})
+            self.logger.debug('decision_value = %s', str(results['decision_value']))
+
         return results     
     
     def _weighted_score(self, y_test, y_predict):
