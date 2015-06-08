@@ -44,7 +44,7 @@ if __name__ == '__main__':
         loglevel = logging.ERROR
     logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel)     
 
-    splitter = FileSplitter(logger=logging)
+    splitter = FileSplitter(loglevel=loglevel)
 
     splitter.load(args.input)
 

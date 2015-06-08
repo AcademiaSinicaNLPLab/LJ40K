@@ -359,7 +359,6 @@ class FileSplitter(object):
         self.logger.debug("dumping X, y to %s" % (file_path))
         np.savez_compressed(file_path, X=np.array(out_X), y=np.array(out_y))
 
-
 class LoadFile(object):
     """
     Fetch features from files
@@ -873,6 +872,16 @@ class DataPreprocessor(object):
         yb = np.array([1 if val == emotion else -1 for val in y])
         return yb
 
+    def get_examples_by_polarities(self, X, y):
+        """
+            input:  X: feature vectors
+                    y: should be a list of 1 or -1
+            output: (positive X, negative X)
+        """
+        idx_pos = [i for i, v in enumerate(y) if v==1]
+        idx_neg = [i for i, v in enumerate(y) if v<=0]
+        return X[idx_pos], X[idx_neg]
+
 class Learning(object):
     """
     usage:
@@ -1056,6 +1065,10 @@ class Learning(object):
             fpr, tpr, thresholds = roc_curve(y_test, X_predict_prob[:, 1])
             results.update({'auc': auc(fpr, tpr)})
             self.logger.info('auc = %f', results['auc'])
+
+        if 'decision_value' in kwargs and kwargs['decision_value'] == True:
+            results.update({'decision_value': self.clf.decision_function(X_test)})
+            self.logger.debug('decision_value = %s', str(results['decision_value']))
 
         return results     
     
