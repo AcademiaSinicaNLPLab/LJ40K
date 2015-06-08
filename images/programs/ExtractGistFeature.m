@@ -11,7 +11,7 @@ function []=ExtractGistFeature(source_dir, dest_dir)
     dirInfo = dir(source_dir);                      % list dir
     isub = [dirInfo(:).isdir];                      % returns logical vector
     nameFolds = {dirInfo(isub).name}';                    % get names
-    nameFolds(ismember(nameFolds,{'.','..'})) = []; % remove . and ..
+    nameFolds(ismember(nameFolds,{'.','..','@eaDir'})) = []; % remove . and ..
     
     for i = 1:size(nameFolds,1)
         emotion = nameFolds{i};
@@ -26,8 +26,11 @@ function []=ExtractGistFeature(source_dir, dest_dir)
             filenames{f} = fnames(f).name;
         end
         
+        % sort the file name in natural order
+        [sorted_fnames, idxs] = sort_nat(filenames);
+
         % extract features
         disp( ['extracting features from ', fld_path] );
-        demo(filenames, fld_path, dest_dir);
+        demo(sorted_fnames, fld_path, dest_dir);
     end
 
